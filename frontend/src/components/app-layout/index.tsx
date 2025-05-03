@@ -1,8 +1,17 @@
 import { IconButton } from "@mui/material";
 import { SensorDoor, Create, Toc } from "@mui/icons-material";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 function Sidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const buttons = [
+    { icon: <Create />, path: "/make-reservation" },
+    { icon: <SensorDoor />, path: "/rooms" },
+    { icon: <Toc />, path: "/reservations" },
+  ];
+
   return (
     <div
       style={{
@@ -19,15 +28,25 @@ function Sidebar() {
         transform: "translateY(-50%)",
       }}
     >
-      <IconButton style={{ color: "white" }}>
-        <Create />
-      </IconButton>
-      <IconButton style={{ color: "white" }}>
-        <SensorDoor />
-      </IconButton>
-      <IconButton style={{ color: "white" }}>
-        <Toc />
-      </IconButton>
+      {buttons.map(({ icon, path }) => {
+        const isActive = location.pathname === path;
+        return (
+          <IconButton
+            key={path}
+            style={{
+              color: "white",
+              opacity: isActive ? 0.4 : 1,
+              cursor: isActive ? "default" : "pointer",
+            }}
+            onClick={() => {
+              if (!isActive) navigate(path);
+            }}
+            disabled={isActive}
+          >
+            {icon}
+          </IconButton>
+        );
+      })}
     </div>
   );
 }

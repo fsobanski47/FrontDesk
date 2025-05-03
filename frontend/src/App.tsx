@@ -12,15 +12,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<WelcomeScreen />} />
-          <Route path="make-reservation" element={<AppLayout />}>
-            <Route index element={<MakeReservation />} />
-          </Route>
-          <Route path="rooms" element={<AppLayout />}>
-            <Route index element={<Rooms />} />
-          </Route>
-          <Route path="reservations" element={<AppLayout />}>
-            <Route index element={<Reservations />} />
-          </Route>
+          <Route path="make-reservation" element={<MakeReservation />} />
+          <Route path="rooms" element={<Rooms />} />
+          <Route path="reservations" element={<Reservations />} />
           <Route path="*" element={<Navigate to="/rooms" />} />
         </Route>
       </Routes>
