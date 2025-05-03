@@ -1,32 +1,8 @@
 {
-  "name": "frontdesk-app",
-  "version": "1.0.0",
-  "description": "FontDesk",
-  "author": "fsobanski",
-  "main": "electron/main.js",
-  "scripts": {
-    "start": "electron .",
-    "build": "react-scripts build",
-    "dist": "electron-builder"
-  },
-  "devDependencies": {
-    "electron": "^26.6.10",
-    "electron-builder": "^26.0.12"
-  },
-  "build": {
-    "appId": "com.example.frontdesk",
-    "productName": "FrontDeskApp",
-    "directories": {
-      "buildResources": "assets",
-      "output": "release"
-    },
-    "files": [
-      "frontend/build/**/*",
-      "electron/**/*",
-      "backend/dist/start_backend.exe"
-    ],
-    "win": {
-      "target": "nsis"
-    }
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.0.2",
+    "@mui/material": "^7.0.2"
   }
 }
