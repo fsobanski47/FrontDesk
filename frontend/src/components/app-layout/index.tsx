@@ -1,5 +1,6 @@
 import { IconButton } from "@mui/material";
-import { Home, Settings, AccountCircle } from "@mui/icons-material";
+import { SensorDoor, Create, Toc } from "@mui/icons-material";
+import { Outlet } from "react-router-dom";
 
 function Sidebar() {
   return (
@@ -19,13 +20,13 @@ function Sidebar() {
       }}
     >
       <IconButton style={{ color: "white" }}>
-        <Home />
+        <Create />
       </IconButton>
       <IconButton style={{ color: "white" }}>
-        <Settings />
+        <SensorDoor />
       </IconButton>
       <IconButton style={{ color: "white" }}>
-        <AccountCircle />
+        <Toc />
       </IconButton>
     </div>
   );
@@ -62,6 +63,7 @@ export default function AppLayout() {
         </h1>
       </header>
       <Sidebar />
+      <Outlet />
     </div>
   );
 }
