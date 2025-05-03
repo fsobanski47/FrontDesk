@@ -26,6 +26,8 @@ function Sidebar() {
         right: 0,
         top: "50%",
         transform: "translateY(-50%)",
+        borderTopLeftRadius: "10px",
+        borderBottomLeftRadius: "10px",
       }}
     >
       {buttons.map(({ icon, path }) => {
