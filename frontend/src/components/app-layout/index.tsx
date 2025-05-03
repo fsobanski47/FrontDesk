@@ -5,10 +5,10 @@ function Sidebar() {
   <div
     style={{
       backgroundColor: "#5aa9e6",
-      width: "50px", // Możesz dostosować szerokość
+      width: "50px",
       display: "flex",
       flexDirection: "column",
-      justifyContent: "space-between", // Równomiernie rozmieszcza przyciski
+      justifyContent: "space-between",
       alignItems: "center",
       paddingTop: "10px",
     }}
