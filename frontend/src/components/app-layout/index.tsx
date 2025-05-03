@@ -2,27 +2,33 @@ import { IconButton } from "@mui/material";
 import { Home, Settings, AccountCircle } from "@mui/icons-material";
 
 function Sidebar() {
-  <div
-    style={{
-      backgroundColor: "#5aa9e6",
-      width: "50px",
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingTop: "10px",
-    }}
-  >
-    <IconButton style={{ color: "white" }}>
-      <Home />
-    </IconButton>
-    <IconButton style={{ color: "white" }}>
-      <Settings />
-    </IconButton>
-    <IconButton style={{ color: "white" }}>
-      <AccountCircle />
-    </IconButton>
-  </div>;
+  return (
+    <div
+      style={{
+        backgroundColor: "#5aa9e6",
+        width: "50px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        paddingTop: "10px",
+        position: "absolute",
+        right: 0,
+        top: "50%",
+        transform: "translateY(-50%)",
+      }}
+    >
+      <IconButton style={{ color: "white" }}>
+        <Home />
+      </IconButton>
+      <IconButton style={{ color: "white" }}>
+        <Settings />
+      </IconButton>
+      <IconButton style={{ color: "white" }}>
+        <AccountCircle />
+      </IconButton>
+    </div>
+  );
 }
 
 export default function AppLayout() {
@@ -32,6 +38,7 @@ export default function AppLayout() {
         backgroundColor: "#0b1e3f",
         height: "100vh",
         margin: 0,
+        padding: 0,
         fontFamily: "Roboto, sans-serif",
         display: "flex",
         flexDirection: "column",
@@ -54,8 +61,7 @@ export default function AppLayout() {
           F R O N T D E S K
         </h1>
       </header>
-
-      <main style={{ flex: 1 }}></main>
+      <Sidebar />
     </div>
   );
 }
