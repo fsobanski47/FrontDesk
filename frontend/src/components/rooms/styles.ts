@@ -3,7 +3,6 @@ import { CSSProperties } from "react";
 export const roomCardStyles = {
   backgroundColor: "#0b1e3f",
   color: "white",
-  border: "2px solid #5aa9e6",
   borderRadius: "8px",
   height: "80px",
   width: "90px",
@@ -18,11 +17,9 @@ export const roomsGridStyles = {
   maxWidth: "100%",
   gridAutoRows: "minmax(100px, auto)",
   justifyItems: "center",
-  paddingLeft: "60px",
 };
 
 export const roomsContainerStyles: CSSProperties = {
-  paddingLeft: "60px",
   flex: 1,
   width: "100%",
   display: "flex",
@@ -45,4 +42,27 @@ export const paginationContainerStyles = {
   justifyContent: "center",
   marginTop: "20px",
   paddingBottom: "20px",
+};
+
+export const filtersContainerStyles = {
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "16px",
+  marginBottom: "20px",
+};
+
+export const createButtonStyles = {
+  marginBottom: "20px",
+  color: "white",
+  height: "56px",
+};
+
+export const createContainerStyles = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "24px",
+  maxWidth: "400px",
+  margin: "0 auto",
+  marginTop: "32px",
 };

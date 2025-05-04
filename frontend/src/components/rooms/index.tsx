@@ -1,4 +1,12 @@
-import { Button, Pagination } from "@mui/material";
+import {
+  Box,
+  Button,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Pagination,
+  Select,
+} from "@mui/material";
 import { Room, RoomStatusType } from "../../types";
 import { MainLayout } from "../welcome-screen";
 import { sampleRooms } from "../../data/sample";
@@ -11,20 +19,12 @@ import {
   titleStyles,
   headingStyles,
   paginationContainerStyles,
+  filtersContainerStyles,
+  createButtonStyles,
 } from "./styles";
-
-const getStatusColor = (statusType: number) => {
-  switch (statusType) {
-    case RoomStatusType.Available:
-      return "#0b1e3f";
-    case RoomStatusType.Occupied:
-      return "#FFCC00";
-    case RoomStatusType.Maintenance:
-      return "#FF0000";
-    default:
-      return "#0b1e3f";
-  }
-};
+import { getStatusColor } from "./utils";
+import { roomTypes } from "../../types/rooms";
+import { Link, useNavigate } from "react-router-dom";
 
 type RoomCardProps = {
   room: Room;
@@ -34,15 +34,20 @@ function RoomCard({ room }: RoomCardProps) {
   const statusColor = getStatusColor(room.roomStatus.statusId);
 
   return (
-    <Button
-      variant="contained"
-      style={{
-        ...roomCardStyles,
-        backgroundColor: statusColor,
-      }}
+    <Link
+      to={`/rooms/room-view?roomId=${room.id}`}
+      style={{ textDecoration: "none" }}
     >
-      {room.roomNumber}
-    </Button>
+      <Button
+        variant="contained"
+        style={{
+          ...roomCardStyles,
+          backgroundColor: statusColor,
+        }}
+      >
+        {room.roomNumber}
+      </Button>
+    </Link>
   );
 }
 
@@ -60,11 +65,83 @@ function RoomsGrid({ rooms }: RoomsGridProps) {
   );
 }
 
+type RoomFilterProps = {
+  selectedType: number | "all";
+  onChange: (value: number | "all") => void;
+};
+
+function RoomFilter({ selectedType, onChange }: RoomFilterProps) {
+  return (
+    <FormControl fullWidth style={{ marginBottom: 20, maxWidth: 300 }}>
+      <InputLabel id="room-type-label" style={{ color: "white" }}>
+        Room Type
+      </InputLabel>
+      <Select
+        labelId="room-type-label"
+        value={selectedType}
+        onChange={(e) => onChange(e.target.value as number | "all")}
+        style={{ color: "white", backgroundColor: "#4dabf5" }}
+      >
+        <MenuItem value="all">All</MenuItem>
+        {roomTypes.map((type) => (
+          <MenuItem key={type.id} value={type.id}>
+            {type.name}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+}
+
+function RoomStatusLegend() {
+  const statusLabels = {
+    [RoomStatusType.Available]: "Available",
+    [RoomStatusType.Occupied]: "Occupied",
+    [RoomStatusType.Maintenance]: "Maintenance",
+  };
+
+  return (
+    <Box display="flex" alignItems="center" gap={2}>
+      {Object.values(RoomStatusType)
+        .filter((v) => typeof v === "number")
+        .map((statusId) => (
+          <Box key={statusId} display="flex" alignItems="center" gap={0.5}>
+            <Box
+              sx={{
+                width: 16,
+                height: 16,
+                borderRadius: "50%",
+                backgroundColor: getStatusColor(statusId as RoomStatusType),
+                marginBottom: "20px",
+              }}
+            />
+            <span
+              style={{
+                color: "white",
+                fontSize: "0.9rem",
+                marginBottom: "20px",
+              }}
+            >
+              {statusLabels[statusId as RoomStatusType]}
+            </span>
+          </Box>
+        ))}
+    </Box>
+  );
+}
+
 export default function Rooms() {
   const [page, setPage] = useState(1);
+  const [roomTypeFilter, setRoomTypeFilter] = useState<number | "all">("all");
+  const navigate = useNavigate();
 
-  const totalPages = Math.ceil(sampleRooms.length / ROOMS_PER_PAGE);
-  const paginatedRooms = sampleRooms.slice(
+  const filteredRooms =
+    roomTypeFilter === "all"
+      ? sampleRooms
+      : sampleRooms.filter((room) => room.roomType.id === roomTypeFilter);
+
+  const totalPages = Math.ceil(filteredRooms.length / ROOMS_PER_PAGE);
+  const paginatedRooms = filteredRooms.slice(
     (page - 1) * ROOMS_PER_PAGE,
     page * ROOMS_PER_PAGE
   );
@@ -74,6 +151,23 @@ export default function Rooms() {
       <div style={roomsContainerStyles}>
         <div style={titleStyles}>
           <h2 style={headingStyles}>Rooms</h2>
+        </div>
+        <div style={filtersContainerStyles}>
+          <RoomStatusLegend />
+          <RoomFilter
+            selectedType={roomTypeFilter}
+            onChange={(value) => {
+              setRoomTypeFilter(value);
+              setPage(1);
+            }}
+          />
+          <Button
+            variant="contained"
+            style={createButtonStyles}
+            onClick={() => navigate("/rooms/create-room")}
+          >
+            Create Room
+          </Button>
         </div>
         <RoomsGrid rooms={paginatedRooms} />
 
