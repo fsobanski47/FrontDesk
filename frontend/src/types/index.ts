@@ -23,3 +23,24 @@ export enum RoomStatusType {
   Occupied = 2,
   Maintenance = 3,
 }
+
+export type Guest = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+};
+
+export type Reservation = {
+  id: number;
+  guestId: number;
+  checkInDate: Date;
+  checkOutDate: Date;
+  totalPrice: number;
+};
+
+export type ReservationRoom = {
+  reservationId: number;
+  roomId: number;
+};

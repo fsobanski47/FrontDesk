@@ -1,4 +1,4 @@
-import { Room, RoomStatusType } from "../types";
+import { Guest, Reservation, ReservationRoom, Room, RoomStatusType } from "../types";
 import { roomTypes } from "../types/rooms";
 
 export const sampleRooms: Room[] = Array.from({ length: 100 }, (_, i) => {
@@ -27,4 +27,40 @@ export const sampleRooms: Room[] = Array.from({ length: 100 }, (_, i) => {
       notes,
     },
   };
+});
+
+export const sampleGuests: Guest[] = Array.from({ length: 50 }, (_, i) => ({
+  id: i + 1,
+  firstName: `Guest${i + 1}`,
+  lastName: `Surname${i + 1}`,
+  phone: `+481234567${(i % 10).toString().padStart(2, "0")}`,
+  email: `guest${i + 1}@example.com`,
+}));
+
+let reservationId = 1;
+export const sampleReservations: Reservation[] = [];
+export const sampleReservationRooms: ReservationRoom[] = [];
+
+sampleRooms.forEach((room, index) => {
+  const guest = sampleGuests[index % sampleGuests.length];
+  const checkInDate = new Date();
+  checkInDate.setDate(checkInDate.getDate() + index);
+  const checkOutDate = new Date(checkInDate);
+  checkOutDate.setDate(checkInDate.getDate() + 2);
+  const totalPrice = room.pricePerNight * 2;
+
+  sampleReservations.push({
+    id: reservationId,
+    guestId: guest.id,
+    checkInDate,
+    checkOutDate,
+    totalPrice,
+  });
+
+  sampleReservationRooms.push({
+    reservationId,
+    roomId: room.id,
+  });
+
+  reservationId++;
 });

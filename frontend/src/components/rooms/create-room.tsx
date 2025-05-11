@@ -66,6 +66,7 @@ export default function CreateRoom() {
           value={roomNumber}
           onChange={(e) => setRoomNumber(Number(e.target.value))}
           fullWidth
+          inputProps={{ min:0 }}
         />
 
         <FormControl fullWidth>
@@ -89,6 +90,7 @@ export default function CreateRoom() {
           value={price}
           onChange={(e) => setPrice(Number(e.target.value))}
           fullWidth
+          inputProps={{ min:0 }}
         />
 
         <Button variant="contained" onClick={handleCreate}>
