@@ -44,3 +44,21 @@ export type ReservationRoom = {
   reservationId: number;
   roomId: number;
 };
+
+export enum PaymentStatusType {
+  Unpaid = 1,
+  Paid = 2,
+}
+
+export type Payment = {
+  id: number;
+  reservationId: number;
+  totalPrice: number;
+  statusId: PaymentStatusType;
+};
+
+export enum ReservationStatusType {
+  Upcoming = "Upcoming",
+  Ongoing = "Ongoing",
+  Completed = "Completed",
+}

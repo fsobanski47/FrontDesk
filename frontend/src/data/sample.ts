@@ -1,4 +1,12 @@
-import { Guest, Reservation, ReservationRoom, Room, RoomStatusType } from "../types";
+import {
+  Guest,
+  Payment,
+  PaymentStatusType,
+  Reservation,
+  ReservationRoom,
+  Room,
+  RoomStatusType,
+} from "../types";
 import { roomTypes } from "../types/rooms";
 
 export const sampleRooms: Room[] = Array.from({ length: 100 }, (_, i) => {
@@ -64,3 +72,12 @@ sampleRooms.forEach((room, index) => {
 
   reservationId++;
 });
+
+export const samplePayments: Payment[] = sampleReservations.map(
+  (reservation) => ({
+    id: reservation.id,
+    reservationId: reservation.id,
+    totalPrice: reservation.totalPrice,
+    statusId: PaymentStatusType.Unpaid,
+  })
+);
