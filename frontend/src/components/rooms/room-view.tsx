@@ -1,16 +1,28 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { Guest, Reservation, Room } from "../../types";
-import { MainLayout } from "../welcome-screen";
-import { Typography, Box, Grid, Paper, Button } from "@mui/material";
-import { sampleGuests, sampleReservationRooms, sampleReservations, sampleRooms } from "../../data/sample";
+import "@mantine/core/styles.css";
+import { Calendar } from "@mantine/dates";
+import "@mantine/dates/styles.css";
+import {
+  Box,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  Paper,
+  Typography,
+} from "@mui/material";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
-import { Calendar } from "@mantine/dates";
-import '@mantine/dates/styles.css';
-import '@mantine/core/styles.css';
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
+import {
+  sampleGuests,
+  sampleReservationRooms,
+  sampleReservations,
+  sampleRooms,
+} from "../../data/sample";
+import { Guest, Reservation, Room, RoomStatusType } from "../../types";
+import { MainLayout } from "../welcome-screen";
 dayjs.extend(isBetween);
-
 
 export default function RoomView() {
   const location = useLocation();
@@ -18,7 +30,8 @@ export default function RoomView() {
   const queryParams = new URLSearchParams(location.search);
   const roomId = queryParams.get("roomId");
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [selectedReservation, setSelectedReservation] =
+    useState<Reservation | null>(null);
   const [guest, setGuest] = useState<Guest | null>(null);
 
   useEffect(() => {
@@ -40,7 +53,12 @@ export default function RoomView() {
 
   const handleDateClick = (date: Date) => {
     const reservation = reservations.find((res) =>
-      dayjs(date).isBetween(dayjs(res.checkInDate).startOf('day'), dayjs(res.checkOutDate).endOf('day'), null, '[]')
+      dayjs(date).isBetween(
+        dayjs(res.checkInDate).startOf("day"),
+        dayjs(res.checkOutDate).endOf("day"),
+        null,
+        "[]"
+      )
     );
 
     if (reservation) {
@@ -51,8 +69,7 @@ export default function RoomView() {
       setSelectedReservation(null);
       setGuest(null);
     }
-
-  }
+  };
 
   if (!room) {
     return (
@@ -77,25 +94,89 @@ export default function RoomView() {
         <Typography variant="h6" color="white">
           Price: ${room.pricePerNight} per night
         </Typography>
-        <Typography variant="h6" color="white">
-          Status: {room.roomStatus.notes || "Available"}
-        </Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Typography variant="h6" color="white">
+            Status: {room.roomStatus.notes || "Available"}
+          </Typography>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={
+                  room.roomStatus.statusId === RoomStatusType.Maintenance
+                }
+                onChange={(_, checked) => {
+                  if (!room) return;
+
+                  const roomIndex = sampleRooms.findIndex(
+                    (r) => r.id === room.id
+                  );
+                  if (roomIndex === -1) return;
+
+                  const newStatus = checked
+                    ? RoomStatusType.Maintenance
+                    : RoomStatusType.Available;
+
+                  sampleRooms[roomIndex].roomStatus = {
+                    ...room.roomStatus,
+                    statusId: newStatus,
+                    notes:
+                      newStatus === RoomStatusType.Maintenance
+                        ? "Maintenance"
+                        : "Available",
+                  };
+
+                  setRoom({
+                    ...room,
+                    roomStatus: sampleRooms[roomIndex].roomStatus,
+                  });
+                }}
+                sx={{ color: "white" }}
+              />
+            }
+            label={
+              <Typography color="white" fontSize="0.875rem">
+                Set as Maintenance
+              </Typography>
+            }
+          />
+        </Box>
       </Box>
 
       <Grid container spacing={20} sx={{ marginTop: "10px" }}>
-        <Grid size={{ xs: 12, md: 6 }} >
-          <Typography variant="h5" color="white" gutterBottom sx={{textAlign: "center"}}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Typography
+            variant="h5"
+            color="white"
+            gutterBottom
+            sx={{ textAlign: "center" }}
+          >
             Reservations
           </Typography>
-          <Paper elevation={3} sx={{ padding: 2, width: '300px', height: '320px', boxSizing: 'border-box'}}>
+          <Paper
+            elevation={3}
+            sx={{
+              padding: 2,
+              width: "300px",
+              height: "320px",
+              boxSizing: "border-box",
+            }}
+          >
             <Calendar
               getDayProps={(date) => {
                 const isReserved = reservations.some((res) =>
-                  dayjs(date).isBetween(dayjs(res.checkInDate).startOf('day'), dayjs(res.checkOutDate).endOf('day'), null, '[]')
+                  dayjs(date).isBetween(
+                    dayjs(res.checkInDate).startOf("day"),
+                    dayjs(res.checkOutDate).endOf("day"),
+                    null,
+                    "[]"
+                  )
                 );
                 return {
                   selected: isReserved,
-                  style: isReserved ? { backgroundColor: '#ff9800', color: 'white' } : {},
+                  style: isReserved
+                    ? { backgroundColor: "#ff9800", color: "white" }
+                    : {},
                   onClick: () => handleDateClick(dayjs(date).toDate()),
                 };
               }}
@@ -103,21 +184,36 @@ export default function RoomView() {
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
-          <Typography variant="h5" color="white" gutterBottom sx={{ textAlign: "center" }}>
+          <Typography
+            variant="h5"
+            color="white"
+            gutterBottom
+            sx={{ textAlign: "center" }}
+          >
             Reservation Details
           </Typography>
-          
-          <Paper elevation={3} sx={{ padding: 2, width: '300px', height: '320px', boxSizing: 'border-box' }}>
+
+          <Paper
+            elevation={3}
+            sx={{
+              padding: 2,
+              width: "300px",
+              height: "320px",
+              boxSizing: "border-box",
+            }}
+          >
             {selectedReservation && guest ? (
               <>
                 <Typography variant="h6" gutterBottom textAlign="center">
                   Reservation Details
                 </Typography>
                 <Typography>
-                  <strong>Check-in:</strong> {dayjs(selectedReservation.checkInDate).format('YYYY-MM-DD')}
+                  <strong>Check-in:</strong>{" "}
+                  {dayjs(selectedReservation.checkInDate).format("YYYY-MM-DD")}
                 </Typography>
                 <Typography>
-                  <strong>Check-out:</strong> {dayjs(selectedReservation.checkOutDate).format('YYYY-MM-DD')}
+                  <strong>Check-out:</strong>{" "}
+                  {dayjs(selectedReservation.checkOutDate).format("YYYY-MM-DD")}
                 </Typography>
                 <Typography>
                   <strong>Reservation ID:</strong> {selectedReservation.id}
@@ -131,12 +227,20 @@ export default function RoomView() {
                 <Typography>
                   <strong>Email:</strong> {guest.email}
                 </Typography>
-                <Button variant="contained" color="primary" sx={{ marginTop: 2 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  sx={{ marginTop: 2 }}
+                >
                   Add Service
                 </Button>
               </>
             ) : (
-              <Typography variant="h6" color="black" sx={{ textAlign: "center" }}>
+              <Typography
+                variant="h6"
+                color="black"
+                sx={{ textAlign: "center" }}
+              >
                 Click on a reservation date for details
               </Typography>
             )}
