@@ -287,7 +287,6 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
                               sx={{
                                 width: 20,
                                 height: 20,
-                                borderRadius: "50%",
                                 bgcolor: occupied ? red[500] : green[500],
                                 margin: "auto",
                               }}
