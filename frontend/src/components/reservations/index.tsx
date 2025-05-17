@@ -18,7 +18,7 @@ import {
   sampleRooms,
 } from "../../data/sample";
 import { PaymentStatusType, ReservationStatusType, Room } from "../../types";
-import { headingStyles } from "../rooms/styles";
+import { headingStyles, titleStyles } from "../rooms/styles";
 import { MainLayout } from "../welcome-screen";
 
 export default function Reservations() {
@@ -54,7 +54,9 @@ export default function Reservations() {
 
   return (
     <MainLayout>
-      <h2 style={headingStyles}>Reservations</h2>
+      <div style={titleStyles}>
+        <h2 style={headingStyles}>Reservations</h2>
+      </div>
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
