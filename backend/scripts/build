@@ -1,0 +1,95 @@
+CREATE TABLE Guests (
+  id int AUTO_INCREMENT PRIMARY KEY,
+  first_name varchar(100),
+  last_name varchar(100),
+  phone varchar(20),
+  email varchar(100)
+);
+
+CREATE TABLE RoomTypes (
+  id int AUTO_INCREMENT PRIMARY KEY,
+  name varchar(50) UNIQUE,
+  description text
+);
+
+CREATE TABLE Rooms (
+  id int AUTO_INCREMENT PRIMARY KEY,
+  room_number varchar(10) UNIQUE,
+  room_type_id int,
+  price_per_night decimal(10,2)
+);
+
+CREATE TABLE Statuses (
+  id int  AUTO_INCREMENT PRIMARY KEY,
+  type varchar(50),
+  name varchar(50) UNIQUE
+);
+
+CREATE TABLE Reservations (
+  id int AUTO_INCREMENT AUTO_INCREMENT PRIMARY KEY,
+  guest_id int,
+  check_in_date datetime,
+  check_out_date datetime,
+  status_id int,
+  total_price decimal(10,2)
+);
+
+CREATE TABLE ReservationRooms (
+  reservation_id int,
+  room_id int,
+	PRIMARY KEY (reservation_id, room_id),
+	FOREIGN KEY (reservation_id) REFERENCES Reservations(id),
+	FOREIGN KEY (room_id) REFERENCES Rooms(id)
+
+);
+
+CREATE TABLE RoomStatus (
+  id int AUTO_INCREMENT PRIMARY KEY,
+  room_id int,
+  status_id int,
+  notes text
+);
+
+CREATE TABLE Services (
+  id int AUTO_INCREMENT PRIMARY KEY,
+  name varchar(100),
+  price decimal(10,2),
+  service_type varchar(50)
+);
+
+CREATE TABLE RoomServices (
+  id int AUTO_INCREMENT PRIMARY KEY,
+  reservation_id int,
+  room_id int,
+  service_id int,
+  schedule_time datetime,
+  actual_price decimal(10,2)
+);
+
+CREATE TABLE Payments (
+  id int AUTO_INCREMENT PRIMARY KEY,
+  reservation_id int,
+  total_amount decimal(10,2),
+  status_id int
+);
+
+ALTER TABLE Rooms ADD FOREIGN KEY (room_type_id) REFERENCES RoomTypes (id);
+
+ALTER TABLE Reservations ADD FOREIGN KEY (guest_id) REFERENCES Guests (id);
+
+ALTER TABLE Reservations ADD FOREIGN KEY (status_id) REFERENCES Statuses (id);
+
+ALTER TABLE RoomStatus ADD FOREIGN KEY (room_id) REFERENCES Rooms (id);
+
+ALTER TABLE RoomStatus ADD FOREIGN KEY (status_id) REFERENCES Statuses (id);
+
+ALTER TABLE RoomServices ADD FOREIGN KEY (reservation_id) REFERENCES Reservations (id);
+
+ALTER TABLE RoomServices ADD FOREIGN KEY (service_id) REFERENCES Services (id);
+
+ALTER TABLE RoomServices ADD FOREIGN KEY (room_id) REFERENCES Rooms(id);
+
+
+ALTER TABLE Payments ADD FOREIGN KEY (reservation_id) REFERENCES Reservations (id);
+
+ALTER TABLE Payments ADD FOREIGN KEY (status_id) REFERENCES Statuses (id);

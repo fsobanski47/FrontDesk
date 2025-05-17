@@ -1,0 +1,63 @@
+-- Przykladowi goscie
+INSERT INTO Guests (first_name, last_name, phone, email) VALUES
+('Jan', 'Kowalski', '123456789', 'jan.kowalski@wp.pl'),
+('Kacper', 'Nowak', '987654321', 'kacnow@interia.pl');
+
+-- Przykladowe typy pokoi
+INSERT INTO RoomTypes (name, description) VALUES
+('Standard', 'Pokoj jednoosobowy z czajnikiem'),
+('Penthouse', 'Elegancki dwupietrowy apartament z wyposazeniem godnym krola');
+
+-- Dodawanie pokoi
+INSERT INTO Rooms (room_number, room_type_id, price_per_night) VALUES
+('101', 1, 200.00), -- ten ma id 1
+('102', 1, 200.00), -- id 2
+('201', 1, 350.00), -- id 3
+('Penthouse', 2, 4000.00); -- id 4
+
+-- Dodawanie statusow (slownik)
+INSERT INTO Statuses (type, name) VALUES
+('Rezerwacja', 'Oczekujaca'),
+('Rezerwacja', 'Potwierdzona'),
+('Pokoj', 'Dostępny'),
+('Pokoj', 'Zajety'),
+('Pokoj', 'Wymaga naprawy'),
+('Platnosc', 'Oplacona'),
+('Platnosc', 'Brak');
+
+-- Dodawanie rezerwacji
+-- 'total_price' - wpisane z palca, powinno byc liczone przez aplikacje
+INSERT INTO Reservations (guest_id, check_in_date, check_out_date, status_id, total_price) VALUES
+(1, '2025-04-10 14:00:00', '2025-04-15 11:00:00', 2, 1000.00), -- id 1
+(2, '2025-04-12 14:00:00', '2025-04-18 11:00:00', 1, 1200.00); -- id 2
+
+-- Dodawanie przypisania pokoi do rezerwacji
+-- troche dziwne jest wiazanie nr rez. do id pokoju ale ok
+INSERT INTO ReservationRooms (reservation_id, room_id) VALUES
+(1, 1),
+(1, 2), 
+(2, 4);
+
+-- Dodawanie statusow pokoi
+INSERT INTO RoomStatus (room_id, status_id, notes) VALUES
+(1, 4, 'Pokoj zajęty przez Jana Kowalskiego'),
+(2, 4, 'Drugi pokoj zajety przez Jana Kowalskiego'),
+(3, 3, 'Pokoj gotowy do rezerwacji'),
+(4, 4, 'Pokoj zajety przez Kacpra Nowaka');
+
+-- Dodawanie uslug - slownik
+INSERT INTO Services (name, price, service_type) VALUES
+('Śniadanie', 50.00, 'Gastronomia'),
+('Sprzątanie', 30.00, 'Przebranie poscieli'),
+('Serwis', 0.00, 'Naprawa usterki');
+
+-- Dodawanie uslug do rezerwacji + pokoi
+INSERT INTO RoomServices (reservation_id, room_id, service_id, schedule_time, actual_price) VALUES
+(1, 1, 1, '2025-04-11 08:00:00', 50.00), -- do pokoju 101 usluga sniadanie
+(2, 3, 2, '2025-04-13 12:00:00', 30.00); -- do pokoju 201 usluga sprzatanie
+
+
+-- Dodawanie płatności
+INSERT INTO Payments (reservation_id, total_amount, status_id) VALUES
+(1, 1000.00, 2),
+(2, 1200.00, 1);
