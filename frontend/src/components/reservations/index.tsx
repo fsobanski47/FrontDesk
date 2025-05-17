@@ -1,29 +1,25 @@
 import {
+  Checkbox,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  Checkbox,
 } from "@mui/material";
+import dayjs from "dayjs";
 import { useState } from "react";
 import {
-  sampleReservations,
   sampleGuests,
-  sampleReservationRooms,
-  sampleRooms,
   samplePayments,
+  sampleReservationRooms,
+  sampleReservations,
+  sampleRooms,
 } from "../../data/sample";
+import { PaymentStatusType, ReservationStatusType, Room } from "../../types";
+import { headingStyles } from "../rooms/styles";
 import { MainLayout } from "../welcome-screen";
-import {
-  Guest,
-  PaymentStatusType,
-  ReservationStatusType,
-  Room,
-} from "../../types";
-import dayjs from "dayjs";
 
 export default function Reservations() {
   const [payments, setPayments] = useState(samplePayments);
@@ -58,7 +54,7 @@ export default function Reservations() {
 
   return (
     <MainLayout>
-      <h2>Reservations</h2>
+      <h2 style={headingStyles}>Reservations</h2>
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
