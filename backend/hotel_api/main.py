@@ -5,6 +5,7 @@ import logging
 from . import crud, models, schemas
 from .database import SessionLocal, engine, get_db
 import datetime
+from fastapi.middleware.cors import CORSMiddleware
 
 
 logging.basicConfig(
@@ -17,11 +18,21 @@ logging.basicConfig(
 # Użycie __name__ jest dobrą praktyką, bo logger będzie miał nazwę modułu (np. "hotel_api.main")
 logger = logging.getLogger(__name__)
 
+
+
 # Utwórz tabele w bazie danych (jeśli nie istnieją)
 # W produkcyjnym środowisku lepiej używać Alembic do migracji
 # models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Hotel Management API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Pozwól na zapytania z frontendu na porcie 3000
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- Guest Endpoints ---
 @app.post("/guests/", response_model=schemas.Guest, tags=["Guests"])
