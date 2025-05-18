@@ -9,47 +9,77 @@ import {
   TableRow,
 } from "@mui/material";
 import dayjs from "dayjs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  sampleGuests,
-  samplePayments,
-  sampleReservationRooms,
-  sampleReservations,
-  sampleRooms,
-} from "../../data/sample";
-import { PaymentStatusType, ReservationStatusType, Room } from "../../types";
+  Guest,
+  Payment,
+  PaymentStatusType,
+  Reservation,
+  ReservationStatusType,
+  Room,
+} from "../../types";
 import { headingStyles, titleStyles } from "../rooms/styles";
 import { MainLayout } from "../welcome-screen";
+import { Endpoints } from "../../constants";
 
 export default function Reservations() {
-  const [payments, setPayments] = useState(samplePayments);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [resResp, payResp, guestResp, roomResp] = await Promise.all([
+          fetch(Endpoints.RESERVATIONS),
+          fetch(Endpoints.PAYMENTS),
+          fetch(Endpoints.GUESTS),
+          fetch(Endpoints.ROOMS),
+        ]);
+
+        const [resData, payData, guestData, roomData] = await Promise.all([
+          resResp.json(),
+          payResp.json(),
+          guestResp.json(),
+          roomResp.json(),
+        ]);
+
+        setReservations(resData);
+        setPayments(payData);
+        setGuests(guestData);
+        setRooms(roomData);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const getReservationStatus = (
     checkIn: Date,
     checkOut: Date
   ): ReservationStatusType => {
     const now = dayjs();
-    if (now.isBefore(checkIn)) return ReservationStatusType.Upcoming;
-    if (now.isAfter(checkOut)) return ReservationStatusType.Completed;
-    return ReservationStatusType.Ongoing;
+    if (now.isBefore(checkIn)) return ReservationStatusType.Awaiting;
+    if (now.isAfter(checkOut)) return ReservationStatusType.Confirmed;
+    return ReservationStatusType.Confirmed;
   };
 
   const togglePaymentStatus = (paymentId: number) => {
-    const paymentIndex = samplePayments.findIndex((p) => p.id === paymentId);
-    if (paymentIndex === -1) return;
-
-    const current = samplePayments[paymentIndex];
-    const newStatus =
-      current.statusId === PaymentStatusType.Paid
-        ? PaymentStatusType.Unpaid
-        : PaymentStatusType.Paid;
-
-    samplePayments[paymentIndex] = {
-      ...current,
-      statusId: newStatus,
-    };
-
-    setPayments([...samplePayments]);
+    const updatedPayments = payments.map((p) =>
+      p.id === paymentId
+        ? {
+            ...p,
+            statusId:
+              p.status_id === PaymentStatusType.Paid
+                ? PaymentStatusType.Unpaid
+                : PaymentStatusType.Paid,
+          }
+        : p
+    );
+    setPayments(updatedPayments);
   };
 
   return (
@@ -76,38 +106,44 @@ export default function Reservations() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {sampleReservations.map((res) => {
-              const guest = sampleGuests.find((g) => g.id === res.guestId)!;
-              const payment = payments.find((p) => p.reservationId === res.id)!;
-              const roomId = sampleReservationRooms.find(
-                (rr) => rr.reservationId === res.id
-              )?.roomId;
-              const room = sampleRooms.find((r) => r.id === roomId) as Room;
-              const servicePrice = payment.totalPrice - res.totalPrice;
+            {reservations.map((res) => {
+              const guest = guests.find((g) => g.id === res.guest_id);
+              const payment = payments.find((p) => p.reservation_id === res.id);
+              const room = rooms.find((r) =>
+                res.rooms.some((rm) => rm.id === r.id)
+              );
+              const servicePrice =
+                payment && room
+                  ? Number(payment.total_amount) - Number(res.total_price)
+                  : 0;
 
               return (
                 <TableRow key={res.id}>
                   <TableCell>{res.id}</TableCell>
-                  <TableCell>{guest.firstName}</TableCell>
-                  <TableCell>{guest.lastName}</TableCell>
-                  <TableCell>{guest.phone}</TableCell>
-                  <TableCell>{guest.email}</TableCell>
+                  <TableCell>{guest?.first_name ?? "-"}</TableCell>
+                  <TableCell>{guest?.last_name ?? "-"}</TableCell>
+                  <TableCell>{guest?.phone ?? "-"}</TableCell>
+                  <TableCell>{guest?.email ?? "-"}</TableCell>
                   <TableCell>
-                    {dayjs(res.checkInDate).format("YYYY-MM-DD")}
+                    {dayjs(res.check_in_date).format("YYYY-MM-DD")}
                   </TableCell>
                   <TableCell>
-                    {dayjs(res.checkOutDate).format("YYYY-MM-DD")}
+                    {dayjs(res.check_out_date).format("YYYY-MM-DD")}
                   </TableCell>
                   <TableCell>
-                    {getReservationStatus(res.checkInDate, res.checkOutDate)}
+                    {getReservationStatus(
+                      new Date(res.check_in_date),
+                      new Date(res.check_out_date)
+                    )}
                   </TableCell>
-                  <TableCell>${room.pricePerNight}</TableCell>
+                  <TableCell>${room?.price_per_night ?? 0}</TableCell>
                   <TableCell>${servicePrice}</TableCell>
-                  <TableCell>${payment.totalPrice}</TableCell>
+                  <TableCell>${payment?.total_amount ?? 0}</TableCell>
                   <TableCell>
                     <Checkbox
-                      checked={payment.statusId === PaymentStatusType.Paid}
-                      onChange={() => togglePaymentStatus(payment.id)}
+                      checked={payment?.status_id === PaymentStatusType.Paid}
+                      onChange={() => togglePaymentStatus(payment!.id)}
+                      disabled={!payment}
                     />
                   </TableCell>
                 </TableRow>

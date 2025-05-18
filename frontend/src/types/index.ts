@@ -1,43 +1,88 @@
 export type RoomStatus = {
-  roomId: number;
-  statusId: RoomStatusType;
+  room_id: number;
+  status_id: number;
+  notes: string | null;
+  id: number;
+  room: Room;
+  status: Status;
+};
+
+export type RoomStatusCreate = {
+  room_id: number;
+  status_id: number;
   notes: string | null;
 };
 
 export type Room = {
+  room_number: string;
+  price_per_night: string;
+  room_type_id: number;
   id: number;
-  roomNumber: number;
-  roomType: RoomType;
-  pricePerNight: number;
-  roomStatus: RoomStatus;
+  room_type: RoomType;
 };
 
 export type RoomType = {
+  name: string;
+  description: string | null;
   id: number;
+};
+
+export type RoomCreate = {
+  room_number: string;
+  price_per_night: number | string;
+  room_type_id: number;
+};
+
+export type RoomTypeCreate = {
   name: string;
   description: string | null;
 };
 
-export enum RoomStatusType {
-  Available = 1,
-  Occupied = 2,
-  Maintenance = 3,
-}
+export type Status = {
+  type: string;
+  name: string;
+  id: number;
+};
+
+export type StatusCreate = {
+  type: string;
+  name: string;
+};
 
 export type Guest = {
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  email: string;
   id: number;
-  firstName: string;
-  lastName: string;
-  phone: string;
+};
+
+export type GuestCreate = {
+  first_name: string;
+  last_name: string;
+  phone: string | null;
   email: string;
 };
 
 export type Reservation = {
+  guest_id: number;
+  check_in_date: Date;
+  check_out_date: Date;
+  status_id: number;
+  total_price: string | null;
   id: number;
-  guestId: number;
-  checkInDate: Date;
-  checkOutDate: Date;
-  totalPrice: number;
+  guest: Guest;
+  status: Status;
+  rooms: Room[];
+};
+
+export type ReservationCreate = {
+  guest_id: number;
+  check_in_date: Date;
+  check_out_date: Date;
+  status_id: number;
+  total_price: number | string | null;
+  room_ids: number[];
 };
 
 export type ReservationRoom = {
@@ -45,20 +90,67 @@ export type ReservationRoom = {
   roomId: number;
 };
 
-export enum PaymentStatusType {
-  Unpaid = 1,
-  Paid = 2,
-}
-
 export type Payment = {
+  reservation_id: number;
+  total_amount: string;
+  status_id: number;
   id: number;
-  reservationId: number;
-  totalPrice: number;
-  statusId: PaymentStatusType;
+  status: Status;
 };
 
+export type PaymentCreate = {
+  reservation_id: number;
+  total_amount: number | string;
+  status_id: number;
+};
+
+export type RoomService = {
+  reservation_id: number;
+  service_id: number;
+  schedule_time: string | null;
+  actual_price: string;
+  id: number;
+  reservation: Reservation;
+  service: Service;
+};
+
+export type RoomServiceCreate = {
+  reservation_id: number;
+  service_id: number;
+  schedule_time: string | null;
+  actual_price: number | string;
+};
+
+export type Service = {
+  name: string;
+  price: string;
+  service_type: string;
+  id: number;
+};
+
+export type ServiceCreate = {
+  name: string;
+  price: number | string;
+  service_type: string;
+};
+
+export enum RoomStatusType {
+  Available = 3,
+  Occupied = 4,
+  Maintenance = 5,
+}
+
 export enum ReservationStatusType {
-  Upcoming = "Upcoming",
-  Ongoing = "Ongoing",
-  Completed = "Completed",
+  Awaiting = 1,
+  Confirmed = 2,
+}
+
+export enum PaymentStatusType {
+  Paid = 6,
+  Unpaid = 7,
+}
+
+export enum RoomTypeType {
+  Standard = 1,
+  Penthouse = 2,
 }

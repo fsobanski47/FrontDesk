@@ -27,15 +27,20 @@ export default function MakeReservation() {
     null,
   ]);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
-  const [start, end] = value;
   const [guests, setGuests] = useState("1");
   const [roomsDialogOpen, setRoomsDialogOpen] = useState(false);
+
+  const [start, end] = value;
 
   const handleGuestsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setGuests(e.target.value);
   };
 
-  const openRoomsDialog = () => setRoomsDialogOpen(true);
+  const openRoomsDialog = () => {
+    // Można tu np. wykonać fetch wstępnie pobierający dostępne pokoje
+    setRoomsDialogOpen(true);
+  };
+
   const closeRoomsDialog = () => setRoomsDialogOpen(false);
 
   return (
@@ -43,6 +48,7 @@ export default function MakeReservation() {
       <div style={titleStyles}>
         <h2 style={headingStyles}>Make a Reservation</h2>
       </div>
+
       <Grid container spacing={4} justifyContent="center" sx={{ mt: 2, px: 2 }}>
         <Item>
           <Paper
@@ -104,7 +110,6 @@ export default function MakeReservation() {
             sx={{
               padding: 2,
               width: "300px",
-              height: "auto",
               boxSizing: "border-box",
               display: "flex",
               flexDirection: "column",
@@ -123,11 +128,11 @@ export default function MakeReservation() {
               onChange={handleGuestsChange}
               fullWidth
             />
-            {value[0] && value[1] && (
+            {start && end && (
               <Box mt={2} textAlign="center">
                 <Typography>
-                  {dayjs(value[0]).format("YYYY-MM-DD")} -{" "}
-                  {dayjs(value[1]).format("YYYY-MM-DD")}
+                  {dayjs(start).format("YYYY-MM-DD")} -{" "}
+                  {dayjs(end).format("YYYY-MM-DD")}
                 </Typography>
                 <Box mt={2}>
                   <Button variant="contained" onClick={openRoomsDialog}>
@@ -139,11 +144,12 @@ export default function MakeReservation() {
           </Paper>
         </Item>
       </Grid>
+
       <RoomSelectionDialog
         open={roomsDialogOpen}
         onClose={closeRoomsDialog}
-        startDate={value[0]}
-        endDate={value[1]}
+        startDate={start ? dayjs(start).format("YYYY-MM-DD") : null}
+        endDate={end ? dayjs(end).format("YYYY-MM-DD") : null}
         guestsCount={parseInt(guests, 10) || 1}
       />
     </MainLayout>

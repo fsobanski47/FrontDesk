@@ -9,9 +9,7 @@ import CreateRoom from "./components/rooms/create-room";
 import RoomView from "./components/rooms/room-view";
 import { createTheme, MantineProvider } from "@mantine/core";
 
-const theme = createTheme({
-
-});
+const theme = createTheme({});
 
 export default function App() {
   return (

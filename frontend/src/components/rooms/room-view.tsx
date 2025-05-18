@@ -15,55 +15,97 @@ import isBetween from "dayjs/plugin/isBetween";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
-  sampleGuests,
-  sampleReservationRooms,
-  sampleReservations,
-  sampleRooms,
-} from "../../data/sample";
-import { Guest, Reservation, Room, RoomStatusType } from "../../types";
+  Guest,
+  Reservation,
+  Room,
+  RoomStatus,
+  RoomStatusType,
+} from "../../types";
 import { MainLayout } from "../welcome-screen";
+import { useHttp } from "../../hooks/use-http";
+import { Endpoints } from "../../constants";
 dayjs.extend(isBetween);
 
 export default function RoomView() {
   const location = useLocation();
-  const [room, setRoom] = useState<Room | null>(null);
   const queryParams = new URLSearchParams(location.search);
   const roomId = queryParams.get("roomId");
+
+  const [room, setRoom] = useState<Room | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [selectedReservation, setSelectedReservation] =
     useState<Reservation | null>(null);
   const [guest, setGuest] = useState<Guest | null>(null);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [status, setStatus] = useState<RoomStatus | null>(null);
 
   useEffect(() => {
-    if (roomId) {
-      const roomData = sampleRooms.find((room) => room.id === Number(roomId));
-      setRoom(roomData || null);
-
-      const reservationIds = sampleReservationRooms
-        .filter((rr) => rr.roomId === Number(roomId))
-        .map((rr) => rr.reservationId);
-
-      const roomReservations = sampleReservations.filter((res) =>
-        reservationIds.includes(res.id)
-      );
-
-      setReservations(roomReservations);
+    if (!roomId) {
+      return;
     }
+
+    const fetchData = async () => {
+      try {
+        const [roomRes, reservationsRes, guestsRes, statusRes] =
+          await Promise.all([
+            fetch(Endpoints.ROOM(Number(roomId))),
+            fetch(Endpoints.RESERVATIONS),
+            fetch(Endpoints.GUESTS),
+            fetch(Endpoints.ROOM_STATUS(Number(roomId))),
+          ]);
+
+        if (
+          !roomRes.ok ||
+          !reservationsRes.ok ||
+          !guestsRes.ok ||
+          !statusRes.ok
+        ) {
+          throw new Error("Failed to fetch one or more resources.");
+        }
+
+        const roomData = await roomRes.json();
+        const allReservations = await reservationsRes.json();
+        const guestsData = await guestsRes.json();
+        const statusData = await statusRes.json();
+
+        console.log(roomData);
+
+        setRoom(roomData);
+        setGuests(guestsData);
+        setStatus(statusData);
+
+        const reservationIds = allReservations
+          .filter((reservation: Reservation) =>
+            reservation.rooms.some((room) => room.id === Number(roomId))
+          )
+          .map((reservation: Reservation) => reservation.id);
+
+        const roomReservations = allReservations.filter((res: Reservation) =>
+          reservationIds.includes(res.id)
+        );
+
+        setReservations(roomReservations);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    };
+
+    fetchData();
   }, [roomId]);
 
   const handleDateClick = (date: Date) => {
     const reservation = reservations.find((res) =>
       dayjs(date).isBetween(
-        dayjs(res.checkInDate).startOf("day"),
-        dayjs(res.checkOutDate).endOf("day"),
+        dayjs(res.check_in_date).startOf("day"),
+        dayjs(res.check_out_date).endOf("day"),
         null,
         "[]"
       )
     );
 
     if (reservation) {
+      const resGuest = guests.find((g) => g.id === reservation.guest_id);
       setSelectedReservation(reservation);
-      const resGuest = sampleGuests.find((g) => g.id === reservation.guestId);
       setGuest(resGuest || null);
     } else {
       setSelectedReservation(null);
@@ -72,6 +114,7 @@ export default function RoomView() {
   };
 
   if (!room) {
+    console.log("elo");
     return (
       <MainLayout>
         <Typography variant="h4">Room not found</Typography>
@@ -86,50 +129,24 @@ export default function RoomView() {
       </Typography>
       <Box sx={{ marginTop: "20px", textAlign: "center" }}>
         <Typography variant="h6" color="white">
-          Room Number: {room.roomNumber}
+          Room Number: {room.room_number}
         </Typography>
         <Typography variant="h6" color="white">
-          Type: {room.roomType.name}
+          Type: {room.room_type.name}
         </Typography>
         <Typography variant="h6" color="white">
-          Price: ${room.pricePerNight} per night
+          Price: ${room.price_per_night} per night
         </Typography>
         <Box display="flex" alignItems="center" gap={2}>
           <Typography variant="h6" color="white">
-            Status: {room.roomStatus.notes || "Available"}
+            Status: {status?.notes || "Available"}
           </Typography>
-
           <FormControlLabel
             control={
               <Checkbox
-                checked={
-                  room.roomStatus.statusId === RoomStatusType.Maintenance
-                }
+                checked={status?.id === RoomStatusType.Maintenance}
                 onChange={(_, checked) => {
-                  if (!room) return;
-
-                  const roomIndex = sampleRooms.findIndex(
-                    (r) => r.id === room.id
-                  );
-                  if (roomIndex === -1) return;
-
-                  const newStatus = checked
-                    ? RoomStatusType.Maintenance
-                    : RoomStatusType.Available;
-
-                  sampleRooms[roomIndex].roomStatus = {
-                    ...room.roomStatus,
-                    statusId: newStatus,
-                    notes:
-                      newStatus === RoomStatusType.Maintenance
-                        ? "Maintenance"
-                        : "Available",
-                  };
-
-                  setRoom({
-                    ...room,
-                    roomStatus: sampleRooms[roomIndex].roomStatus,
-                  });
+                  // status changing
                 }}
                 sx={{ color: "white" }}
               />
@@ -160,14 +177,15 @@ export default function RoomView() {
               width: "300px",
               height: "320px",
               boxSizing: "border-box",
+              margin: "0 auto",
             }}
           >
             <Calendar
               getDayProps={(date) => {
                 const isReserved = reservations.some((res) =>
                   dayjs(date).isBetween(
-                    dayjs(res.checkInDate).startOf("day"),
-                    dayjs(res.checkOutDate).endOf("day"),
+                    dayjs(res.check_in_date).startOf("day"),
+                    dayjs(res.check_out_date).endOf("day"),
                     null,
                     "[]"
                   )
@@ -183,6 +201,7 @@ export default function RoomView() {
             />
           </Paper>
         </Grid>
+
         <Grid size={{ xs: 12, md: 6 }}>
           <Typography
             variant="h5"
@@ -192,7 +211,6 @@ export default function RoomView() {
           >
             Reservation Details
           </Typography>
-
           <Paper
             elevation={3}
             sx={{
@@ -200,6 +218,7 @@ export default function RoomView() {
               width: "300px",
               height: "320px",
               boxSizing: "border-box",
+              margin: "0 auto",
             }}
           >
             {selectedReservation && guest ? (
@@ -209,17 +228,21 @@ export default function RoomView() {
                 </Typography>
                 <Typography>
                   <strong>Check-in:</strong>{" "}
-                  {dayjs(selectedReservation.checkInDate).format("YYYY-MM-DD")}
+                  {dayjs(selectedReservation.check_in_date).format(
+                    "YYYY-MM-DD"
+                  )}
                 </Typography>
                 <Typography>
                   <strong>Check-out:</strong>{" "}
-                  {dayjs(selectedReservation.checkOutDate).format("YYYY-MM-DD")}
+                  {dayjs(selectedReservation.check_out_date).format(
+                    "YYYY-MM-DD"
+                  )}
                 </Typography>
                 <Typography>
                   <strong>Reservation ID:</strong> {selectedReservation.id}
                 </Typography>
                 <Typography>
-                  <strong>Guest:</strong> {guest.firstName} {guest.lastName}
+                  <strong>Guest:</strong> {guest.first_name} {guest.last_name}
                 </Typography>
                 <Typography>
                   <strong>Phone:</strong> {guest.phone}

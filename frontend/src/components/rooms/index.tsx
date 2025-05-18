@@ -7,11 +7,10 @@ import {
   Pagination,
   Select,
 } from "@mui/material";
-import { Room, RoomStatusType } from "../../types";
+import { Room, RoomStatus, RoomStatusType, RoomType } from "../../types";
 import { MainLayout } from "../welcome-screen";
-import { sampleRooms } from "../../data/sample";
-import { useState } from "react";
-import { ROOMS_PER_PAGE } from "../../constants";
+import { useEffect, useState } from "react";
+import { Endpoints, ROOMS_PER_PAGE } from "../../constants";
 import {
   roomCardStyles,
   roomsGridStyles,
@@ -23,15 +22,34 @@ import {
   createButtonStyles,
 } from "./styles";
 import { getStatusColor } from "./utils";
-import { roomTypes } from "../../types/rooms";
 import { Link, useNavigate } from "react-router-dom";
+import { useHttp } from "../../hooks/use-http";
 
 type RoomCardProps = {
   room: Room;
 };
 
 function RoomCard({ room }: RoomCardProps) {
-  const statusColor = getStatusColor(room.roomStatus.statusId);
+  const [roomStatus, setRoomStatus] = useState<RoomStatus | null>(null);
+
+  useEffect(() => {
+    const fetchRoomStatus = async () => {
+      try {
+        const res = await fetch(Endpoints.ROOM_STATUS(room.id));
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        setRoomStatus(data);
+      } catch (err) {
+        console.error("Failed to fetch room status:", err);
+      }
+    };
+
+    fetchRoomStatus();
+  }, [room.id]);
+
+  if (!roomStatus) return <></>;
+
+  const statusColor = getStatusColor(roomStatus.status_id);
 
   return (
     <Link
@@ -45,7 +63,7 @@ function RoomCard({ room }: RoomCardProps) {
           backgroundColor: statusColor,
         }}
       >
-        {room.roomNumber}
+        {room.id}
       </Button>
     </Link>
   );
@@ -71,6 +89,23 @@ type RoomFilterProps = {
 };
 
 function RoomFilter({ selectedType, onChange }: RoomFilterProps) {
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+
+  useEffect(() => {
+    const fetchRoomTypes = async () => {
+      try {
+        const res = await fetch(Endpoints.ROOM_TYPES);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        setRoomTypes(data);
+      } catch (err) {
+        console.error("Failed to fetch room types:", err);
+      }
+    };
+
+    fetchRoomTypes();
+  }, []);
+
   return (
     <FormControl fullWidth style={{ marginBottom: 20, maxWidth: 300 }}>
       <InputLabel id="room-type-label" style={{ color: "white" }}>
@@ -131,14 +166,55 @@ function RoomStatusLegend() {
 }
 
 export default function Rooms() {
+  const [rooms, setRooms] = useState<Room[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [page, setPage] = useState(1);
   const [roomTypeFilter, setRoomTypeFilter] = useState<number | "all">("all");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const fetchRooms = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(Endpoints.ROOMS);
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+        const data = await res.json();
+        setRooms(data);
+        setError(null);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch rooms");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRooms();
+  }, []);
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <p>Loading...</p>
+      </MainLayout>
+    );
+  }
+
+  if (error || !rooms) {
+    return (
+      <MainLayout>
+        <p>Error: {error}</p>
+      </MainLayout>
+    );
+  }
+
   const filteredRooms =
     roomTypeFilter === "all"
-      ? sampleRooms
-      : sampleRooms.filter((room) => room.roomType.id === roomTypeFilter);
+      ? rooms
+      : rooms.filter((room) => room.room_type_id === roomTypeFilter);
 
   const totalPages = Math.ceil(filteredRooms.length / ROOMS_PER_PAGE);
   const paginatedRooms = filteredRooms.slice(
@@ -170,7 +246,6 @@ export default function Rooms() {
           </Button>
         </div>
         <RoomsGrid rooms={paginatedRooms} />
-
         <div style={paginationContainerStyles}>
           <Pagination
             count={totalPages}

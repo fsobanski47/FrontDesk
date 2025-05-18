@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -19,14 +19,8 @@ import {
 } from "@mui/material";
 import { green, red } from "@mui/material/colors";
 import dayjs from "dayjs";
-import {
-  sampleReservationRooms,
-  sampleReservations,
-  sampleRooms,
-  sampleGuests,
-} from "../../data/sample";
-import { roomTypes } from "../../types/rooms";
-import { RoomStatusType } from "../../types";
+import { Endpoints } from "../../constants";
+import { Reservation, Room, RoomTypeType } from "../../types";
 
 type RoomSelectionDialogProps = {
   open: boolean;
@@ -34,24 +28,31 @@ type RoomSelectionDialogProps = {
   startDate: string | null;
   endDate: string | null;
   guestsCount: number;
-  onReservationAdded?: () => void;
+  //onReservationAdded?: () => void;
 };
 
-function isRoomOccupied(roomId: number, date: Date) {
-  return sampleReservationRooms.some((rr) => {
-    if (rr.roomId !== roomId) {
+function isRoomOccupied(
+  roomId: number,
+  date: Date,
+  reservations: Reservation[] | null
+) {
+  if (!reservations) {
+    return false;
+  }
+
+  return reservations.some((rr) => {
+    if (!rr.rooms.some((r) => r.id === roomId)) {
       return false;
     }
-    const reservation = sampleReservations.find(
-      (res) => res.id === rr.reservationId
-    );
+    // find reservation by id (redundant here since rr is a reservation?)
+    const reservation = reservations.find((res) => res.id === rr.id);
     if (!reservation) {
       return false;
     }
     return (
-      (dayjs(date).isSame(dayjs(reservation.checkInDate), "day") ||
-        dayjs(date).isAfter(dayjs(reservation.checkInDate), "day")) &&
-      dayjs(date).isBefore(dayjs(reservation.checkOutDate), "day")
+      (dayjs(date).isSame(dayjs(reservation.check_in_date), "day") ||
+        dayjs(date).isAfter(dayjs(reservation.check_in_date), "day")) &&
+      dayjs(date).isBefore(dayjs(reservation.check_out_date), "day")
     );
   });
 }
@@ -62,13 +63,36 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
   startDate,
   endDate,
   guestsCount,
-  onReservationAdded,
+  //onReservationAdded,
 }) => {
   const [selectedRoomIds, setSelectedRoomIds] = useState<number[]>([]);
   const [guestFirstName, setGuestFirstName] = useState("");
   const [guestLastName, setGuestLastName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
+
+  const [rooms, setRooms] = useState<Room[] | null>(null);
+  const [allReservations, setAllReservations] = useState<Reservation[] | null>(
+    null
+  );
+
+  // Fetch rooms
+  useEffect(() => {
+    if (!open) return; // only fetch when dialog is open
+    fetch(Endpoints.ROOMS)
+      .then((res) => res.json())
+      .then((data: Room[]) => setRooms(data))
+      .catch(() => setRooms(null));
+  }, [open]);
+
+  // Fetch reservations
+  useEffect(() => {
+    if (!open) return;
+    fetch(Endpoints.RESERVATIONS)
+      .then((res) => res.json())
+      .then((data: Reservation[]) => setAllReservations(data))
+      .catch(() => setAllReservations(null));
+  }, [open]);
 
   const dateRange = React.useMemo(() => {
     if (!startDate || !endDate) return [];
@@ -84,38 +108,37 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
   }, [startDate, endDate]);
 
   const filteredRooms = React.useMemo(() => {
-    if (!startDate || !endDate) return [];
+    if (!startDate || !endDate || !rooms) return [];
 
     const start = dayjs(startDate);
     const end = dayjs(endDate);
 
-    return sampleRooms.filter((room) => {
+    return rooms.filter((room) => {
       const capacityMap: Record<number, number> = {
         1: 1,
-        2: 2,
-        3: 4,
+        2: 4,
       };
-      const capacity = capacityMap[room.roomType.id] ?? 1;
+      const capacity = capacityMap[room.room_type_id] ?? 1;
       if (capacity < guestsCount) {
         return false;
       }
 
-      const isReservedInRange = sampleReservationRooms.some((rr) => {
-        if (rr.roomId !== room.id) return false;
-        const reservation = sampleReservations.find(
-          (res) => res.id === rr.reservationId
-        );
+      const isReservedInRange = allReservations?.some((rr) => {
+        if (!rr.rooms.some((r) => r.id === room.id)) {
+          return false;
+        }
+        const reservation = allReservations.find((res) => res.id === rr.id);
         if (!reservation) return false;
 
-        const resStart = dayjs(reservation.checkInDate);
-        const resEnd = dayjs(reservation.checkOutDate);
+        const resStart = dayjs(reservation.check_in_date);
+        const resEnd = dayjs(reservation.check_out_date);
 
         return resStart.isBefore(end, "day") && resEnd.isAfter(start, "day");
       });
 
       return !isReservedInRange;
     });
-  }, [guestsCount, startDate, endDate]);
+  }, [guestsCount, startDate, endDate, rooms, allReservations]);
 
   const toggleRoomSelection = (roomId: number) => {
     setSelectedRoomIds((prev) =>
@@ -136,53 +159,7 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
     guestPhone.trim() !== "";
 
   const handleAddReservation = () => {
-    // if (!isFormValid) return;
-    // const newGuestId = sampleGuests.length
-    //   ? Math.max(...sampleGuests.map((g) => g.id)) + 1
-    //   : 1;
-    // const newReservationId = sampleReservations.length
-    //   ? Math.max(...sampleReservations.map((r) => r.id)) + 1
-    //   : 1;
-    // sampleGuests.push({
-    //   id: newGuestId,
-    //   firstName: guestFirstName,
-    //   lastName: guestLastName,
-    //   email: guestEmail,
-    //   phone: guestPhone,
-    // });
-    // const checkIn = dayjs(startDate).toDate();
-    // const checkOut = dayjs(endDate).toDate();
-    // const nights = dayjs(endDate).diff(dayjs(startDate), "day");
-    // let totalPrice = 0;
-    // selectedRoomIds.forEach((roomId) => {
-    //   const room = sampleRooms.find((r) => r.id === roomId);
-    //   if (room) totalPrice += room.pricePerNight * nights;
-    // });
-    // sampleReservations.push({
-    //   id: newReservationId,
-    //   guestId: newGuestId,
-    //   checkInDate: checkIn,
-    //   checkOutDate: checkOut,
-    //   totalPrice,
-    // });
-    // selectedRoomIds.forEach((roomId) => {
-    //   sampleReservationRooms.push({
-    //     reservationId: newReservationId,
-    //     roomId,
-    //   });
-    //   const room = sampleRooms.find((r) => r.id === roomId);
-    //   if (room) {
-    //     room.roomStatus.statusId = RoomStatusType.Occupied;
-    //     room.roomStatus.notes = "Room Occupied";
-    //   }
-    // });
-    // onClose();
-    // setSelectedRoomIds([]);
-    // setGuestFirstName("");
-    // setGuestLastName("");
-    // setGuestEmail("");
-    // setGuestPhone("");
-    // if (onReservationAdded) onReservationAdded();
+    //
   };
 
   return (
@@ -233,7 +210,7 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
             />
           </Box>
         </Box>
-        {filteredRooms.length === 0 ? (
+        {filteredRooms?.length === 0 ? (
           <Typography>
             No rooms available for the selected guests and dates.
           </Typography>
@@ -257,7 +234,7 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredRooms.map((room) => {
+                {filteredRooms?.map((room) => {
                   const isSelected = selectedRoomIds.includes(room.id);
                   return (
                     <TableRow key={room.id} hover>
@@ -272,12 +249,15 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
                       </TableCell>
                       <TableCell>{room.id}</TableCell>
                       <TableCell>
-                        {roomTypes.find((rt) => rt.id === room.roomType.id)
-                          ?.name ?? "Unknown"}
+                        {RoomTypeType[room.room_type_id] ?? "Unknown"}
                       </TableCell>
-                      <TableCell>${room.pricePerNight}</TableCell>
+                      <TableCell>${room.price_per_night}</TableCell>
                       {dateRange.map((date) => {
-                        const occupied = isRoomOccupied(room.id, date);
+                        const occupied = isRoomOccupied(
+                          room.id,
+                          date,
+                          allReservations
+                        );
                         return (
                           <TableCell
                             key={dayjs(date).format("YYYY-MM-DD")}
