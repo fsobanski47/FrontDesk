@@ -130,6 +130,42 @@ def read_room(room_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Room not found")
     return db_room
 
+@app.put("/rooms/{room_id}/maintenance", response_model=schemas.RoomStatus, tags=["Room Statuses"])
+def set_room_to_maintenance(room_id: int, db: Session = Depends(get_db)):
+    # Znajdź status "maintenance"
+    maintenance_status = db.query(models.Status).filter(models.Status.id == "5").first()
+    if not maintenance_status:
+        raise HTTPException(status_code=404, detail="Status id '5' not found")
+    # Znajdź istniejący wpis RoomStatus dla tego pokoju
+    db_room_status = db.query(models.RoomStatus).filter(models.RoomStatus.room_id == room_id).first()
+    if not db_room_status:
+        # Jeśli nie istnieje, utwórz nowy
+        room_status_data = schemas.RoomStatusCreate(room_id=room_id, status_id=maintenance_status.id)
+        return crud.create_room_status(db=db, room_status=room_status_data)
+    # Jeśli istnieje, zaktualizuj status_id
+    db_room_status.status_id = maintenance_status.id
+    db.commit()
+    db.refresh(db_room_status)
+    return db_room_status
+
+@app.put("/rooms/{room_id}/restore", response_model=schemas.RoomStatus, tags=["Room Statuses"])
+def set_room_to_maintenance(room_id: int, db: Session = Depends(get_db)):
+    # Znajdź status "dostepny"
+    maintenance_status = db.query(models.Status).filter(models.Status.id == "3").first()
+    if not maintenance_status:
+        raise HTTPException(status_code=404, detail="Status id '3' not found")
+    # Znajdź istniejący wpis RoomStatus dla tego pokoju
+    db_room_status = db.query(models.RoomStatus).filter(models.RoomStatus.room_id == room_id).first()
+    if not db_room_status:
+        # Jeśli nie istnieje, utwórz nowy
+        room_status_data = schemas.RoomStatusCreate(room_id=room_id, status_id=maintenance_status.id)
+        return crud.create_room_status(db=db, room_status=room_status_data)
+    # Jeśli istnieje, zaktualizuj status_id
+    db_room_status.status_id = maintenance_status.id
+    db.commit()
+    db.refresh(db_room_status)
+    return db_room_status
+
 # --- Status Endpoints ---
 @app.post("/statuses/", response_model=schemas.Status, tags=["Statuses"])
 def create_status(status: schemas.StatusCreate, db: Session = Depends(get_db)):
