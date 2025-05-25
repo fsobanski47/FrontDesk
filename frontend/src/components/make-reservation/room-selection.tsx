@@ -16,6 +16,7 @@ import {
   TableRow,
   Paper,
   TextField,
+  TablePagination,
 } from "@mui/material";
 import { green, red } from "@mui/material/colors";
 import dayjs from "dayjs";
@@ -28,7 +29,6 @@ type RoomSelectionDialogProps = {
   startDate: string | null;
   endDate: string | null;
   guestsCount: number;
-  //onReservationAdded?: () => void;
 };
 
 function isRoomOccupied(
@@ -75,6 +75,80 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
   const [allReservations, setAllReservations] = useState<Reservation[] | null>(
     null
   );
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const handleChangePage = (_: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleAddReservation = async () => {
+    try {
+      // 1. Create guest
+      const guestResponse = await fetch(Endpoints.GUESTS, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          first_name: guestFirstName,
+          last_name: guestLastName,
+          email: guestEmail,
+          phone: guestPhone,
+        }),
+      });
+
+      if (!guestResponse.ok) {
+        throw new Error("Failed to create guest");
+      }
+
+      const guestData = await guestResponse.json();
+      const guestId = guestData.id;
+
+      // 2. Calculate total price
+      const nights = dayjs(endDate).diff(dayjs(startDate), "day");
+      const selectedRooms =
+        rooms?.filter((room) => selectedRoomIds.includes(room.id)) || [];
+      const totalPrice = selectedRooms.reduce(
+        (sum, room) => sum + Number(room.price_per_night) * nights,
+        0
+      );
+
+      // 3. Create reservation
+      const reservationResponse = await fetch(Endpoints.RESERVATIONS, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          guest_id: guestId,
+          check_in_date: startDate,
+          check_out_date: endDate,
+          status_id: 1, // zakładam: 1 = aktywna, dostosuj do swojego modelu
+          total_price: totalPrice,
+          room_ids: selectedRoomIds,
+        }),
+      });
+
+      if (!reservationResponse.ok) {
+        throw new Error("Failed to create reservation");
+      }
+
+      // Optional: close dialog, reset form
+      onClose();
+    } catch (err) {
+      console.error("Reservation creation failed:", err);
+      alert("Failed to create reservation. Please try again.");
+    }
+  };
 
   // Fetch rooms
   useEffect(() => {
@@ -158,10 +232,6 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
     guestEmail.trim() !== "" &&
     guestPhone.trim() !== "";
 
-  const handleAddReservation = () => {
-    //
-  };
-
   return (
     <Dialog
       open={open}
@@ -210,79 +280,60 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
             />
           </Box>
         </Box>
-        {filteredRooms?.length === 0 ? (
-          <Typography>
-            No rooms available for the selected guests and dates.
-          </Typography>
-        ) : (
-          <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell padding="checkbox" />
-                  <TableCell>Room ID</TableCell>
-                  <TableCell>Size</TableCell>
-                  <TableCell>Price per night</TableCell>
-                  {dateRange.map((date) => (
+        {filteredRooms
+          ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+          .map((room) => {
+            const isSelected = selectedRoomIds.includes(room.id);
+            return (
+              <TableRow key={room.id} hover>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={isSelected}
+                    onChange={() => toggleRoomSelection(room.id)}
+                    inputProps={{ "aria-label": `select room ${room.id}` }}
+                  />
+                </TableCell>
+                <TableCell>{room.id}</TableCell>
+                <TableCell>
+                  {RoomTypeType[room.room_type_id] ?? "Unknown"}
+                </TableCell>
+                <TableCell>${room.price_per_night}</TableCell>
+                {dateRange.map((date) => {
+                  const occupied = isRoomOccupied(
+                    room.id,
+                    date,
+                    allReservations
+                  );
+                  return (
                     <TableCell
                       key={dayjs(date).format("YYYY-MM-DD")}
                       align="center"
                     >
-                      {dayjs(date).format("MM-DD")}
+                      <Box
+                        sx={{
+                          width: 20,
+                          height: 20,
+                          bgcolor: occupied ? red[500] : green[500],
+                          margin: "auto",
+                        }}
+                        title={occupied ? "Occupied" : "Available"}
+                      />
                     </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredRooms?.map((room) => {
-                  const isSelected = selectedRoomIds.includes(room.id);
-                  return (
-                    <TableRow key={room.id} hover>
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={isSelected}
-                          onChange={() => toggleRoomSelection(room.id)}
-                          inputProps={{
-                            "aria-label": `select room ${room.id}`,
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>{room.id}</TableCell>
-                      <TableCell>
-                        {RoomTypeType[room.room_type_id] ?? "Unknown"}
-                      </TableCell>
-                      <TableCell>${room.price_per_night}</TableCell>
-                      {dateRange.map((date) => {
-                        const occupied = isRoomOccupied(
-                          room.id,
-                          date,
-                          allReservations
-                        );
-                        return (
-                          <TableCell
-                            key={dayjs(date).format("YYYY-MM-DD")}
-                            align="center"
-                          >
-                            <Box
-                              sx={{
-                                width: 20,
-                                height: 20,
-                                bgcolor: occupied ? red[500] : green[500],
-                                margin: "auto",
-                              }}
-                              title={occupied ? "Occupied" : "Available"}
-                            />
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+              </TableRow>
+            );
+          })}
       </DialogContent>
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25, 50]}
+        component="div"
+        count={filteredRooms?.length || 0}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+      />
       <DialogActions>
         <Button onClick={onClose}>Close</Button>
         <Button

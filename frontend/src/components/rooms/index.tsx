@@ -7,23 +7,22 @@ import {
   Pagination,
   Select,
 } from "@mui/material";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Endpoints, ROOMS_PER_PAGE } from "../../constants";
 import { Room, RoomStatus, RoomStatusType, RoomType } from "../../types";
 import { MainLayout } from "../welcome-screen";
-import { useEffect, useState } from "react";
-import { Endpoints, ROOMS_PER_PAGE } from "../../constants";
 import {
-  roomCardStyles,
-  roomsGridStyles,
-  roomsContainerStyles,
-  titleStyles,
+  createButtonStyles,
+  filtersContainerStyles,
   headingStyles,
   paginationContainerStyles,
-  filtersContainerStyles,
-  createButtonStyles,
+  roomCardStyles,
+  roomsContainerStyles,
+  roomsGridStyles,
+  titleStyles,
 } from "./styles";
 import { getStatusColor } from "./utils";
-import { Link, useNavigate } from "react-router-dom";
-import { useHttp } from "../../hooks/use-http";
 
 type RoomCardProps = {
   room: Room;

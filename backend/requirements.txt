@@ -1,11 +1,2 @@
 fastapi
-uvicorn[standard]
-sqlalchemy
-pydantic[email]
-# Jeśli używasz PostgreSQL:
-# psycopg2-binary
-# Jeśli używasz MySQL:
-mysqlclient
-aiomysql
-greenlet
-cryptography
+uvicorn

@@ -18,8 +18,6 @@ logging.basicConfig(
 # Użycie __name__ jest dobrą praktyką, bo logger będzie miał nazwę modułu (np. "hotel_api.main")
 logger = logging.getLogger(__name__)
 
-
-
 # Utwórz tabele w bazie danych (jeśli nie istnieją)
 # W produkcyjnym środowisku lepiej używać Alembic do migracji
 # models.Base.metadata.create_all(bind=engine)
@@ -93,6 +91,15 @@ def read_guest(guest_id: int, db: Session = Depends(get_db)):
     if db_guest is None:
         raise HTTPException(status_code=404, detail="Guest not found")
     return db_guest
+
+
+@app.get("/guests/reservation/{reservation_id}", response_model=List[schemas.Guest], tags=["Guests"])
+def read_guest_by_reservation(reservation_id: int, db: Session = Depends(get_db)):
+    db_guest = crud.get_guest_by_reservation(db, reservation_id=reservation_id)
+    if db_guest is None:
+        raise HTTPException(status_code=404, detail="Guest not found")
+    return db_guest
+
 
 # --- RoomType Endpoints ---
 @app.post("/roomtypes/", response_model=schemas.RoomType, tags=["Room Types"])
@@ -179,6 +186,13 @@ def read_reservation(reservation_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Reservation not found")
     return db_reservation
 
+@app.get("/reservations/room/{room_id}", response_model=List[schemas.Reservation], tags=["Reservations"])
+def get_ongoing_and_next_reservations_by_room(room_id: int, db: Session = Depends(get_db)):
+    db_ongoing_and_next = crud.get_ongoing_and_next_reservations_by_room(db, room_id=room_id)
+    if db_ongoing_and_next is None:
+        raise HTTPException(status_code=404, detail="No ongoing or next reservations found for this room")
+    return db_ongoing_and_next
+
 
 # --- Service Endpoints ---
 @app.post("/services/", response_model=schemas.Service, tags=["Services"])
@@ -219,6 +233,15 @@ def read_room_service(room_service_id: int, db: Session = Depends(get_db)):
     if db_room_service is None:
         raise HTTPException(status_code=404, detail="RoomService not found")
     return db_room_service
+
+@app.get("/roomservices/reservation/{reservation_id}", response_model=List[schemas.RoomService], tags=["Room Services"])
+def read_room_service_by_reservation(reservation_id: int, db: Session = Depends(get_db)):
+    db_room_service = crud.get_room_service_by_reservation(db, reservation_id=reservation_id)
+    if db_room_service is None:
+        raise HTTPException(status_code=404, detail="RoomService not found")
+    return db_room_service
+
+
 
 # --- Payment Endpoints ---
 @app.post("/payments/", response_model=schemas.Payment, tags=["Payments"])

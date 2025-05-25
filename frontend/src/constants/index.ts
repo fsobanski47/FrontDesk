@@ -27,4 +27,8 @@ export const Endpoints = {
   ROOM_TYPE: (roomTypeId: number) => buildUrl(`roomtypes/${roomTypeId}`),
   GUESTS: buildUrl("guests"),
   GUEST: (guestId: number) => buildUrl(`guests/${guestId}`),
+  RESERVATION_GUEST: (reservationId: number) =>
+    buildUrl(`guests/reservation/${reservationId}`),
+  ROOM_RESERVATIONS: (roomId: number) =>
+    buildUrl(`reservations/room/${roomId}`),
 };
