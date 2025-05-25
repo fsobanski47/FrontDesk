@@ -1,18 +1,26 @@
 import "@mantine/core/styles.css";
-import { Calendar } from "@mantine/dates";
+import { Calendar, DatePicker } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import {
   Box,
   Button,
   Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   Grid,
+  MenuItem,
   Paper,
+  Select,
+  TextField,
   Typography,
 } from "@mui/material";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { useEffect, useState } from "react";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useLocation } from "react-router-dom";
 import {
   Guest,
@@ -24,6 +32,7 @@ import {
 import { MainLayout } from "../welcome-screen";
 import { useHttp } from "../../hooks/use-http";
 import { Endpoints } from "../../constants";
+import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 dayjs.extend(isBetween);
 
 export default function RoomView() {
@@ -38,6 +47,56 @@ export default function RoomView() {
   const [guest, setGuest] = useState<Guest | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [status, setStatus] = useState<RoomStatus | null>(null);
+
+  const [serviceDialogOpen, setServiceDialogOpen] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<number>(1);
+  const [scheduledDate, setScheduledDate] = useState<Dayjs | null>(null);
+  const [actualPrice, setActualPrice] = useState<number>(50);
+
+  const servicePrices: Record<number, number> = {
+    1: 50,
+    2: 30,
+    3: 0,
+  };
+
+  const handleServiceChange = (value: number) => {
+    setSelectedServiceId(value);
+    setActualPrice(servicePrices[value]);
+  };
+
+  const handleAddService = async () => {
+    if (!selectedReservation || !scheduledDate) {
+      alert("Please select a reservation and schedule date.");
+      return;
+    }
+
+    const payload = {
+      reservation_id: selectedReservation.id,
+      service_id: selectedServiceId,
+      schedule_time: scheduledDate,
+      actual_price: actualPrice,
+    };
+
+    try {
+      const res = await fetch(`${Endpoints.ROOM_SERVICES}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to add room service.");
+      }
+
+      alert("Service added successfully.");
+      setServiceDialogOpen(false);
+    } catch (err) {
+      console.error("Add service error:", err);
+      alert("Failed to add service.");
+    }
+  };
 
   useEffect(() => {
     if (!roomId) {
@@ -254,9 +313,69 @@ export default function RoomView() {
                   variant="contained"
                   color="primary"
                   sx={{ marginTop: 2 }}
+                  onClick={() => setServiceDialogOpen(true)}
                 >
                   Add Service
                 </Button>
+
+                <Dialog
+                  open={serviceDialogOpen}
+                  onClose={() => setServiceDialogOpen(false)}
+                >
+                  <DialogTitle>Add Room Service</DialogTitle>
+                  <DialogContent>
+                    <FormControlLabel
+                      control={
+                        <Select
+                          fullWidth
+                          value={selectedServiceId}
+                          onChange={(e) =>
+                            handleServiceChange(Number(e.target.value))
+                          }
+                          sx={{ mt: 2 }}
+                        >
+                          <MenuItem value={1}>Breakfast</MenuItem>
+                          <MenuItem value={2}>Cleaning</MenuItem>
+                          <MenuItem value={3}>Service</MenuItem>
+                        </Select>
+                      }
+                      label=""
+                    />
+
+                    <TextField
+                      label="Price"
+                      value={`$${actualPrice}`}
+                      fullWidth
+                      margin="normal"
+                      disabled
+                    />
+
+                    <LocalizationProvider dateAdapter={AdapterDayjs}>
+                      <DateTimePicker
+                        label="Schedule Date"
+                        value={scheduledDate}
+                        onChange={(newValue) => setScheduledDate(newValue)}
+                        minDateTime={dayjs().subtract(1, "day")}
+                        maxDateTime={dayjs().add(1, "month")}
+                        slotProps={{
+                          textField: {
+                            fullWidth: true,
+                            margin: "normal",
+                          },
+                        }}
+                      />
+                    </LocalizationProvider>
+                  </DialogContent>
+
+                  <DialogActions>
+                    <Button onClick={() => setServiceDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="contained" onClick={handleAddService}>
+                      Add Service
+                    </Button>
+                  </DialogActions>
+                </Dialog>
               </>
             ) : (
               <Typography
