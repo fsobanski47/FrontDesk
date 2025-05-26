@@ -64,7 +64,7 @@ class ReservationBase(BaseModel):
     guest_id: int
     check_in_date: datetime
     check_out_date: datetime
-    status_id: int
+    status_id: Optional[int] = 1 # defaultowe rezerwacja oczekujaca
     total_price: Optional[Decimal] = None
 
 class ReservationCreate(ReservationBase):
