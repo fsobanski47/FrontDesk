@@ -5,6 +5,7 @@ import logging
 from . import crud, models, schemas
 from .database import SessionLocal, engine, get_db
 import datetime
+from decimal import Decimal
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -26,7 +27,7 @@ app = FastAPI(title="Hotel Management API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Pozwól na zapytania z frontendu na porcie 3000
+    allow_origins=["http://localhost:3000"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -130,6 +131,27 @@ def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db)):
 
 @app.get("/rooms/", response_model=List[schemas.Room], tags=["Rooms"])
 def read_rooms(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    now = datetime.datetime.now()
+    reservations = crud.get_reservations(db)
+    for reservation in reservations:
+        for room_id in reservation.room_ids:
+            # Jeśli rezerwacja trwa TERAZ, ustaw status na "zajęty" (id=4)
+            if reservation.check_in_date <= now <= reservation.check_out_date:
+                db_room_status = db.query(models.RoomStatus).filter(models.RoomStatus.room_id == room_id).first()
+                if not db_room_status:
+                    room_status_data = schemas.RoomStatusCreate(room_id=room_id, status_id=4)
+                    crud.create_room_status(db=db, room_status=room_status_data)
+                else:
+                    if db_room_status.status_id != 4:
+                        db_room_status.status_id = 4
+                        db.commit()
+                        db.refresh(db_room_status)
+            # Jeśli rezerwacja się zakończyła, ustaw status na "dostępny" (id=3)
+            elif reservation.check_out_date < now:
+                db_room_status = db.query(models.RoomStatus).filter(models.RoomStatus.room_id == room_id).first()
+                if db_room_status and db_room_status.status_id != 3:
+                    db_room_status.status_id = 3
+                    db.commit()
     return crud.get_rooms(db, skip=skip, limit=limit)
 
 @app.get("/rooms/{room_id}", response_model=schemas.Room, tags=["Rooms"])
@@ -138,6 +160,42 @@ def read_room(room_id: int, db: Session = Depends(get_db)):
     if db_room is None:
         raise HTTPException(status_code=404, detail="Room not found")
     return db_room
+
+@app.put("/rooms/{room_id}/maintenance", response_model=schemas.RoomStatus, tags=["Room Statuses"])
+def set_room_to_maintenance(room_id: int, db: Session = Depends(get_db)):
+    # Znajdź status "maintenance"
+    maintenance_status = db.query(models.Status).filter(models.Status.id == "5").first()
+    if not maintenance_status:
+        raise HTTPException(status_code=404, detail="Status id '5' not found")
+    # Znajdź istniejący wpis RoomStatus dla tego pokoju
+    db_room_status = db.query(models.RoomStatus).filter(models.RoomStatus.room_id == room_id).first()
+    if not db_room_status:
+        # Jeśli nie istnieje, utwórz nowy
+        room_status_data = schemas.RoomStatusCreate(room_id=room_id, status_id=maintenance_status.id)
+        return crud.create_room_status(db=db, room_status=room_status_data)
+    # Jeśli istnieje, zaktualizuj status_id
+    db_room_status.status_id = maintenance_status.id
+    db.commit()
+    db.refresh(db_room_status)
+    return db_room_status
+
+@app.put("/rooms/{room_id}/restore", response_model=schemas.RoomStatus, tags=["Room Statuses"])
+def set_room_to_maintenance(room_id: int, db: Session = Depends(get_db)):
+    # Znajdź status "dostepny"
+    maintenance_status = db.query(models.Status).filter(models.Status.id == "3").first()
+    if not maintenance_status:
+        raise HTTPException(status_code=404, detail="Status id '3' not found")
+    # Znajdź istniejący wpis RoomStatus dla tego pokoju
+    db_room_status = db.query(models.RoomStatus).filter(models.RoomStatus.room_id == room_id).first()
+    if not db_room_status:
+        # Jeśli nie istnieje, utwórz nowy
+        room_status_data = schemas.RoomStatusCreate(room_id=room_id, status_id=maintenance_status.id)
+        return crud.create_room_status(db=db, room_status=room_status_data)
+    # Jeśli istnieje, zaktualizuj status_id
+    db_room_status.status_id = maintenance_status.id
+    db.commit()
+    db.refresh(db_room_status)
+    return db_room_status
 
 # --- Status Endpoints ---
 @app.post("/statuses/", response_model=schemas.Status, tags=["Statuses"])
@@ -168,11 +226,15 @@ def create_reservation(reservation: schemas.ReservationCreate, db: Session = Dep
         raise HTTPException(status_code=404, detail=f"Status with id {reservation.status_id} not found")
     
     # Walidacja czy pokoje istnieją
+    total_price = Decimal("0.0")
     for room_id in reservation.room_ids:
         db_room = crud.get_room(db, room_id=room_id)
         if not db_room:
             raise HTTPException(status_code=404, detail=f"Room with id {room_id} not found")
-            
+        nights = (reservation.check_out_date - reservation.check_in_date).days
+        total_price += Decimal(db_room.price_per_night * nights)
+        reservation.total_price = total_price
+
     return crud.create_reservation(db=db, reservation=reservation)
 
 @app.get("/reservations/", response_model=List[schemas.Reservation], tags=["Reservations"])
@@ -192,6 +254,15 @@ def get_ongoing_and_next_reservations_by_room(room_id: int, db: Session = Depend
     if db_ongoing_and_next is None:
         raise HTTPException(status_code=404, detail="No ongoing or next reservations found for this room")
     return db_ongoing_and_next
+
+
+@app.delete("/reservations/{reservation_id}", tags=["Reservations"])
+def delete_reservation(reservation_id: int, db: Session = Depends(get_db)):
+    db_reservation = crud.get_reservation(db, reservation_id=reservation_id)
+    if db_reservation is None:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    crud.delete_reservation(db, reservation_id=reservation_id)
+    return {"detail": f"Reservation {reservation_id} deleted successfully"}
 
 
 # --- Service Endpoints ---
@@ -241,6 +312,12 @@ def read_room_service_by_reservation(reservation_id: int, db: Session = Depends(
         raise HTTPException(status_code=404, detail="RoomService not found")
     return db_room_service
 
+@app.get("/roomservices/reservation/{reservation_id}/sum", response_model=float, tags=["Room Services"])
+def sum_room_services_by_reservation(reservation_id: int, db: Session = Depends(get_db)):
+    room_services = db.query(models.RoomService).filter(models.RoomService.reservation_id == reservation_id).all()
+    total = sum(rs.actual_price for rs in room_services if rs.actual_price is not None)
+    return total
+
 
 
 # --- Payment Endpoints ---
@@ -267,6 +344,34 @@ def read_payment(payment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Payment not found")
     return db_payment
 
+@app.put("/payments/by-reservation/{reservation_id}/paid", response_model=schemas.Payment, tags=["Payments"])
+def set_payment_paid_by_reservation(reservation_id: int, db: Session = Depends(get_db)):
+    status_id = 6  # 6 = paid
+    db_payment = db.query(models.Payment).filter(models.Payment.reservation_id == reservation_id).first()
+    if db_payment is None:
+        raise HTTPException(status_code=404, detail="Payment for this reservation not found")
+    db_status = crud.get_status(db, status_id=status_id)
+    if db_status is None:
+        raise HTTPException(status_code=404, detail=f"Status with id {status_id} not found")
+    db_payment.status_id = status_id
+    db.commit()
+    db.refresh(db_payment)
+    return db_payment
+
+@app.put("/payments/by-reservation/{reservation_id}/unpaid", response_model=schemas.Payment, tags=["Payments"])
+def set_payment_unpaid_by_reservation(reservation_id: int, db: Session = Depends(get_db)):
+    status_id = 7  # 7 = unpaid
+    db_payment = db.query(models.Payment).filter(models.Payment.reservation_id == reservation_id).first()
+    if db_payment is None:
+        raise HTTPException(status_code=404, detail="Payment for this reservation not found")
+    db_status = crud.get_status(db, status_id=status_id)
+    if db_status is None:
+        raise HTTPException(status_code=404, detail=f"Status with id {status_id} not found")
+    db_payment.status_id = status_id
+    db.commit()
+    db.refresh(db_payment)
+    return db_payment
+
 # --- RoomStatus Endpoints ---
 @app.post("/roomstatuses/", response_model=schemas.RoomStatus, tags=["Room Statuses"])
 def create_room_status(room_status: schemas.RoomStatusCreate, db: Session = Depends(get_db)):
@@ -289,6 +394,25 @@ def read_room_status(room_status_id: int, db: Session = Depends(get_db)):
     db_room_status = crud.get_room_status(db, room_status_id=room_status_id)
     if db_room_status is None:
         raise HTTPException(status_code=404, detail="RoomStatus not found")
+    return db_room_status
+
+
+@app.put("/roomstatuses/{room_id}/{set_id}/{note}", response_model=schemas.RoomStatus, tags=["Room Statuses"])
+def set_room_to_status(room_id: int, set_id: int, note: str, db: Session = Depends(get_db)):
+    new_status = db.query(models.Status).filter(models.Status.id == str(set_id)).first()
+    if not new_status:
+        raise HTTPException(status_code=404, detail=f"Status id {set_id} not found")
+    # Znajdź istniejący wpis RoomStatus dla tego pokoju
+    db_room_status = db.query(models.RoomStatus).filter(models.RoomStatus.room_id == room_id).first()
+    if not db_room_status:
+        # Jeśli nie istnieje, utwórz nowy
+        room_status_data = schemas.RoomStatusCreate(room_id=room_id, status_id=new_status.id)
+        return crud.create_room_status(db=db, room_status=room_status_data)
+    # Jeśli istnieje, zaktualizuj status_id
+    db_room_status.status_id = new_status.id
+    db_room_status.notes = note
+    db.commit()
+    db.refresh(db_room_status)
     return db_room_status
 
 # manufaktura zaczyna sie tutaj

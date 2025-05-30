@@ -21,6 +21,16 @@ def create_guest(db: Session, guest: schemas.GuestCreate):
     db.refresh(db_guest)
     return db_guest
 
+def get_guest_by_reservation(db: Session, reservation_id: int):
+    return db.query(models.Guest).join(models.Reservation).filter(models.Reservation.id == reservation_id).all()
+
+def get_ongoing_and_next_reservations_by_room(db: Session, room_id: int):
+    now = datetime.datetime.now()
+    return db.query(models.Reservation).join(models.Reservation.rooms).filter(
+        models.Room.id == room_id,
+        models.Reservation.check_in_date <= now,
+        models.Reservation.check_out_date >= now
+    ).all()
 # --- RoomType CRUD ---
 def get_room_type(db: Session, room_type_id: int):
     return db.query(models.RoomType).filter(models.RoomType.id == room_type_id).first()
@@ -85,11 +95,22 @@ def create_reservation(db: Session, reservation: schemas.ReservationCreate):
             # or raise an exception
             pass
         db_reservation.rooms.extend(rooms)
+    
+    
         
     db.add(db_reservation)
     db.commit()
     db.refresh(db_reservation)
     return db_reservation
+
+
+def delete_reservation(db: Session, reservation_id: int):
+    db_reservation = db.query(models.Reservation).filter(models.Reservation.id == reservation_id).first()
+    if db_reservation:
+        db.delete(db_reservation)
+        db.commit()
+        return True
+    return False
 
 # --- Service CRUD ---
 def get_service(db: Session, service_id: int):
@@ -119,6 +140,9 @@ def create_room_service(db: Session, room_service: schemas.RoomServiceCreate):
     db.refresh(db_room_service)
     return db_room_service
 
+def get_room_service_by_reservation(db: Session, reservation_id: int):
+    return db.query(models.RoomService).join(models.Reservation).filter(models.Reservation.id == reservation_id).all()
+
 # --- Payment CRUD ---
 def get_payment(db: Session, payment_id: int):
     return db.query(models.Payment).filter(models.Payment.id == payment_id).first()
@@ -132,6 +156,8 @@ def create_payment(db: Session, payment: schemas.PaymentCreate):
     db.commit()
     db.refresh(db_payment)
     return db_payment
+
+
 
 # --- RoomStatus CRUD ---
 def get_room_status(db: Session, room_status_id: int):
