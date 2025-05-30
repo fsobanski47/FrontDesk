@@ -101,6 +101,15 @@ def create_reservation(db: Session, reservation: schemas.ReservationCreate):
     db.add(db_reservation)
     db.commit()
     db.refresh(db_reservation)
+    
+    db_payment = models.Payment(
+        reservation_id=db_reservation.id,
+        total_amount=reservation.total_price,  # lub inna logika wyliczania kwoty
+        status_id=7  # lub inny domyślny status
+    )
+    db.add(db_payment)
+    db.commit()
+    db.refresh(db_payment)
     return db_reservation
 
 
