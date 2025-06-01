@@ -27,7 +27,7 @@ app = FastAPI(title="Hotel Management API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"], 
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -134,7 +134,8 @@ def read_rooms(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     now = datetime.datetime.now()
     reservations = crud.get_reservations(db)
     for reservation in reservations:
-        for room_id in reservation.room_ids:
+        for room in reservation.rooms:
+            room_id = room.id
             # Jeśli rezerwacja trwa TERAZ, ustaw status na "zajęty" (id=4)
             if reservation.check_in_date <= now <= reservation.check_out_date:
                 db_room_status = db.query(models.RoomStatus).filter(models.RoomStatus.room_id == room_id).first()

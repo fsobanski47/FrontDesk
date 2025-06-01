@@ -3,7 +3,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base # Zmień import declarative_base
 # Jeśli używasz mysqlclient:
-SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:chcialbys@vpn.koteczek.uk:21370/hotel_db?charset=utf8mb4"
+
 # Jeśli używasz PyMySQL:
 # SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:aleksanderthegreat@10.154.37.4:3306/hotel?charset=utf8mb4"
 
