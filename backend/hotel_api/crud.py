@@ -102,14 +102,14 @@ def create_reservation(db: Session, reservation: schemas.ReservationCreate):
     db.commit()
     db.refresh(db_reservation)
     
-    db_payment = models.Payment(
-        reservation_id=db_reservation.id,
-        total_amount=reservation.total_price,  # lub inna logika wyliczania kwoty
-        status_id=7  # lub inny domyślny status
-    )
-    db.add(db_payment)
-    db.commit()
-    db.refresh(db_payment)
+    # db_payment = models.Payment(
+    #     reservation_id=db_reservation.id,
+    #     total_amount=reservation.total_price,  # lub inna logika wyliczania kwoty
+    #     status_id=7  # lub inny domyślny status
+    # )
+    # db.add(db_payment)
+    # db.commit()
+    # db.refresh(db_payment)
     return db_reservation
 
 
@@ -181,6 +181,9 @@ def create_room_status(db: Session, room_status: schemas.RoomStatusCreate):
     db.commit()
     db.refresh(db_room_status)
     return db_room_status
+
+def get_room_status_by_room_id(db: Session, room_id: int):
+    return db.query(models.RoomStatus).join(models.Room).filter(models.Room.id == room_id).first()
 
 def get_available_rooms(db: Session, check_in_date: datetime, check_out_date: datetime):
     # Fetch all rooms
