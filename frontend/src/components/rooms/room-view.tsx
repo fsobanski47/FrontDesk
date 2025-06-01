@@ -188,10 +188,7 @@ export default function RoomView() {
         <Typography variant="h6" color="white">
           Price: ${room.price_per_night} per night
         </Typography>
-        <Box display="flex" alignItems="center" gap={2}>
-          <Typography variant="h6" color="white">
-            Status: {status?.notes || "Available"}
-          </Typography>
+        <Box display="flex" alignItems="center">
           <FormControlLabel
             control={
               <Checkbox

@@ -49,6 +49,7 @@ function RoomCard({ room }: RoomCardProps) {
   if (!roomStatus) return <></>;
 
   const statusColor = getStatusColor(roomStatus.status_id);
+  console.log(room.id, roomStatus.status_id);
 
   return (
     <Link

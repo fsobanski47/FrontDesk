@@ -27,7 +27,7 @@ app = FastAPI(title="Hotel Management API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000"],  # Pozwól na zapytania z frontendu na porcie 3000
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -127,7 +127,21 @@ def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db)):
     if not db_room_type:
         raise HTTPException(status_code=404, detail=f"RoomType with id {room.room_type_id} not found")
     # Można dodać walidację unikalności numeru pokoju
-    return crud.create_room(db=db, room=room)
+    created_room = crud.create_room(db=db, room=room)
+
+    available_status_id = 3 
+    # Sprawdź, czy status "dostępny" istnieje
+ 
+    db_status = crud.create_room_status(db=db, room_status=schemas.RoomStatusCreate(
+        room_id=created_room.id, 
+        status_id=available_status_id,
+        notes="Swiezo stworzony pokoj." # Opcjonalna notatka
+    ))
+    if not db_status:
+        # To jest mało prawdopodobne, jeśli statusy są predefiniowane, ale warto sprawdzić
+        raise HTTPException(status_code=500, detail=f"Default status with id {available_status_id} not found. Cannot set room status.")
+
+    return created_room
 
 @app.get("/rooms/", response_model=List[schemas.Room], tags=["Rooms"])
 def read_rooms(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -235,8 +249,21 @@ def create_reservation(reservation: schemas.ReservationCreate, db: Session = Dep
         nights = (reservation.check_out_date - reservation.check_in_date).days
         total_price += Decimal(db_room.price_per_night * nights)
         reservation.total_price = total_price
+    created_reservation = crud.create_reservation(db=db, reservation=reservation)
 
-    return crud.create_reservation(db=db, reservation=reservation)
+    #actually jest w crudzie ale gorzej
+
+    status_unpaid = 7
+    db_payment = crud.create_payment(db=db, payment=schemas.PaymentCreate(
+        reservation_id=created_reservation.id,
+        status_id=status_unpaid,
+        total_amount=reservation.total_price
+    ))
+    if not db_payment:
+        raise HTTPException(status_code=500, detail="Failed to create payment for the reservation")
+    
+
+    return created_reservation
 
 @app.get("/reservations/", response_model=List[schemas.Reservation], tags=["Reservations"])
 def read_reservations(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -390,11 +417,13 @@ def create_room_status(room_status: schemas.RoomStatusCreate, db: Session = Depe
 def read_all_room_statuses(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud.get_all_room_statuses(db, skip=skip, limit=limit)
 
-@app.get("/roomstatuses/{room_status_id}", response_model=schemas.RoomStatus, tags=["Room Statuses"])
-def read_room_status(room_status_id: int, db: Session = Depends(get_db)):
-    db_room_status = crud.get_room_status(db, room_status_id=room_status_id)
+@app.get("/roomstatuses/{room_id}", response_model=schemas.RoomStatus, tags=["Room Statuses"])
+def read_room_status(room_id: int, db: Session = Depends(get_db)):
+    # Assumes a CRUD function like `crud.get_room_status_by_room_id(db, room_id=room_id)` exists
+    # This function should query the database for a RoomStatus entry associated with the given room_id.
+    db_room_status = crud.get_room_status_by_room_id(db, room_id=room_id)
     if db_room_status is None:
-        raise HTTPException(status_code=404, detail="RoomStatus not found")
+        raise HTTPException(status_code=404, detail=f"RoomStatus not found for room_id {room_id}")
     return db_room_status
 
 
