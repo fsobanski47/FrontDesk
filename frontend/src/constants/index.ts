@@ -31,4 +31,9 @@ export const Endpoints = {
     buildUrl(`guests/reservation/${reservationId}`),
   ROOM_RESERVATIONS: (roomId: number) =>
     buildUrl(`reservations/room/${roomId}`),
+  STATUS_RESTORE: (roomId: number) => buildUrl(`rooms/${roomId}/restore`),
+  STATUS_MAINTENANCE: (roomId: number) =>
+    buildUrl(`rooms/${roomId}/maintenance`),
+  TOGGLE_PAY: (reservationId: number) =>
+    buildUrl(`payments/by-reservation/${reservationId}`),
 };

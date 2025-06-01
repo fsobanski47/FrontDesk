@@ -81,19 +81,41 @@ export default function Reservations() {
     return ReservationStatusType.Confirmed;
   };
 
-  const togglePaymentStatus = (paymentId: number) => {
-    const updatedPayments = payments.map((p) =>
-      p.id === paymentId
-        ? {
-            ...p,
-            statusId:
-              p.status_id === PaymentStatusType.Paid
-                ? PaymentStatusType.Unpaid
-                : PaymentStatusType.Paid,
-          }
-        : p
-    );
-    setPayments(updatedPayments);
+  const togglePaymentStatus = async (
+    reservationId: number,
+    currentStatus: PaymentStatusType
+  ) => {
+    const newStatus =
+      currentStatus === PaymentStatusType.Paid
+        ? PaymentStatusType.Unpaid
+        : PaymentStatusType.Paid;
+
+    try {
+      await fetch(
+        `${Endpoints.TOGGLE_PAY(reservationId)}/${
+          newStatus === PaymentStatusType.Paid ? "paid" : "unpaid"
+        }`,
+        { method: "PUT" }
+      );
+
+      const updatedPayments = payments.map((p) =>
+        p.reservation_id === reservationId ? { ...p, status_id: newStatus } : p
+      );
+      setPayments(updatedPayments);
+    } catch (err) {
+      console.error("Failed to update payment status:", err);
+    }
+  };
+
+  const deleteReservation = async (reservationId: number) => {
+    try {
+      await fetch(`${Endpoints.RESERVATIONS}/${reservationId}`, {
+        method: "DELETE",
+      });
+      setReservations(reservations.filter((r) => r.id !== reservationId));
+    } catch (err) {
+      console.error("Failed to delete reservation:", err);
+    }
   };
 
   return (
@@ -101,7 +123,10 @@ export default function Reservations() {
       <div style={titleStyles}>
         <h2 style={headingStyles}>Reservations</h2>
       </div>
-      <TableContainer component={Paper}>
+      <TableContainer
+        component={Paper}
+        sx={{ maxHeight: "56vh", overflowY: "auto" }}
+      >
         <Table>
           <TableHead>
             <TableRow>
@@ -117,6 +142,7 @@ export default function Reservations() {
               <TableCell>Service Price</TableCell>
               <TableCell>Total Price</TableCell>
               <TableCell>Paid</TableCell>
+              <TableCell>Delete</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -160,9 +186,16 @@ export default function Reservations() {
                     <TableCell>
                       <Checkbox
                         checked={payment?.status_id === PaymentStatusType.Paid}
-                        onChange={() => togglePaymentStatus(payment!.id)}
+                        onChange={() =>
+                          togglePaymentStatus(res.id, payment!.status_id)
+                        }
                         disabled={!payment}
                       />
+                    </TableCell>
+                    <TableCell>
+                      <button onClick={() => deleteReservation(res.id)}>
+                        Delete
+                      </button>
                     </TableCell>
                   </TableRow>
                 );

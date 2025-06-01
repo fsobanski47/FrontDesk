@@ -1,5 +1,5 @@
 import "@mantine/core/styles.css";
-import { Calendar, DatePicker } from "@mantine/dates";
+import { Calendar } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import {
   Box,
@@ -17,11 +17,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { useEffect, useState } from "react";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useLocation } from "react-router-dom";
+import { Endpoints } from "../../constants";
 import {
   Guest,
   Reservation,
@@ -30,9 +32,6 @@ import {
   RoomStatusType,
 } from "../../types";
 import { MainLayout } from "../welcome-screen";
-import { useHttp } from "../../hooks/use-http";
-import { Endpoints } from "../../constants";
-import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 dayjs.extend(isBetween);
 
 export default function RoomView() {
@@ -45,7 +44,6 @@ export default function RoomView() {
   const [selectedReservation, setSelectedReservation] =
     useState<Reservation | null>(null);
   const [guest, setGuest] = useState<Guest | null>(null);
-  const [guests, setGuests] = useState<Guest[]>([]);
   const [status, setStatus] = useState<RoomStatus | null>(null);
 
   const [serviceDialogOpen, setServiceDialogOpen] = useState(false);
@@ -98,59 +96,54 @@ export default function RoomView() {
     }
   };
 
-  useEffect(() => {
-    if (!roomId) {
-      return;
+  const handleStatusChange = async (checked: boolean) => {
+    try {
+      const endpoint = checked
+        ? Endpoints.STATUS_MAINTENANCE(Number(roomId))
+        : Endpoints.STATUS_RESTORE(Number(roomId));
+
+      const res = await fetch(endpoint, {
+        method: "PUT",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update room status.");
+      }
+    } catch (err) {
+      console.error("Status update error:", err);
+      alert("Failed to update room status.");
     }
+  };
+
+  useEffect(() => {
+    if (!roomId) return;
 
     const fetchData = async () => {
       try {
-        const [roomRes, reservationsRes, guestsRes, statusRes] =
-          await Promise.all([
-            fetch(Endpoints.ROOM(Number(roomId))),
-            fetch(Endpoints.RESERVATIONS),
-            fetch(Endpoints.GUESTS),
-            fetch(Endpoints.ROOM_STATUS(Number(roomId))),
-          ]);
+        const [roomRes, reservationsRes, statusRes] = await Promise.all([
+          fetch(Endpoints.ROOM(Number(roomId))),
+          fetch(Endpoints.ROOM_RESERVATIONS(Number(roomId))),
+          fetch(Endpoints.ROOM_STATUS(Number(roomId))),
+        ]);
 
-        if (
-          !roomRes.ok ||
-          !reservationsRes.ok ||
-          !guestsRes.ok ||
-          !statusRes.ok
-        ) {
+        if (!roomRes.ok || !reservationsRes.ok || !statusRes.ok) {
           throw new Error("Failed to fetch one or more resources.");
         }
 
         const roomData = await roomRes.json();
-        const allReservations = await reservationsRes.json();
-        const guestsData = await guestsRes.json();
+        const reservationsData = await reservationsRes.json();
         const statusData = await statusRes.json();
 
-        console.log(roomData);
-
         setRoom(roomData);
-        setGuests(guestsData);
+        setReservations(reservationsData);
         setStatus(statusData);
-
-        const reservationIds = allReservations
-          .filter((reservation: Reservation) =>
-            reservation.rooms.some((room) => room.id === Number(roomId))
-          )
-          .map((reservation: Reservation) => reservation.id);
-
-        const roomReservations = allReservations.filter((res: Reservation) =>
-          reservationIds.includes(res.id)
-        );
-
-        setReservations(roomReservations);
       } catch (err) {
         console.error("Fetch error:", err);
       }
     };
 
     fetchData();
-  }, [roomId]);
+  }, [roomId, handleStatusChange]);
 
   const handleDateClick = (date: Date) => {
     const reservation = reservations.find((res) =>
@@ -163,7 +156,7 @@ export default function RoomView() {
     );
 
     if (reservation) {
-      const resGuest = guests.find((g) => g.id === reservation.guest_id);
+      const resGuest = reservation.guest;
       setSelectedReservation(reservation);
       setGuest(resGuest || null);
     } else {
@@ -173,7 +166,6 @@ export default function RoomView() {
   };
 
   if (!room) {
-    console.log("elo");
     return (
       <MainLayout>
         <Typography variant="h4">Room not found</Typography>
@@ -203,10 +195,8 @@ export default function RoomView() {
           <FormControlLabel
             control={
               <Checkbox
-                checked={status?.id === RoomStatusType.Maintenance}
-                onChange={(_, checked) => {
-                  // status changing
-                }}
+                checked={status?.status_id === RoomStatusType.Maintenance}
+                onChange={(_, checked) => handleStatusChange(checked)}
                 sx={{ color: "white" }}
               />
             }
