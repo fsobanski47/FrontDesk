@@ -18,6 +18,7 @@ const Item = styled(Paper)(({ theme }) => ({
   backgroundColor: "#fff",
   padding: theme.spacing(1),
   textAlign: "center",
+  height: "400px",
   color: theme.palette.text.secondary,
 }));
 
@@ -29,6 +30,11 @@ export default function MakeReservation() {
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   const [guests, setGuests] = useState("1");
   const [roomsDialogOpen, setRoomsDialogOpen] = useState(false);
+
+  const [guestFirstName, setGuestFirstName] = useState("");
+  const [guestLastName, setGuestLastName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
 
   const [start, end] = value;
 
@@ -42,6 +48,16 @@ export default function MakeReservation() {
   };
 
   const closeRoomsDialog = () => setRoomsDialogOpen(false);
+
+  const isGuestInfoValid =
+    guestFirstName.trim() !== "" &&
+    guestLastName.trim() !== "" &&
+    guestEmail.trim() !== "" &&
+    guestPhone.trim() !== "" &&
+    start &&
+    end &&
+    guests &&
+    parseInt(guests, 10) > 0;
 
   return (
     <MainLayout>
@@ -101,6 +117,23 @@ export default function MakeReservation() {
                 };
               }}
             />
+            {start && end && (
+              <Box mt={2} textAlign="center">
+                <Typography>
+                  {dayjs(start).format("YYYY-MM-DD")} -{" "}
+                  {dayjs(end).format("YYYY-MM-DD")}
+                </Typography>
+                <Box mt={0}>
+                  <Button
+                    variant="contained"
+                    onClick={openRoomsDialog}
+                    disabled={!isGuestInfoValid}
+                  >
+                    Choose Rooms
+                  </Button>
+                </Box>
+              </Box>
+            )}
           </Paper>
         </Item>
 
@@ -127,20 +160,44 @@ export default function MakeReservation() {
               value={guests}
               onChange={handleGuestsChange}
               fullWidth
+              size="small"
             />
-            {start && end && (
-              <Box mt={2} textAlign="center">
-                <Typography>
-                  {dayjs(start).format("YYYY-MM-DD")} -{" "}
-                  {dayjs(end).format("YYYY-MM-DD")}
-                </Typography>
-                <Box mt={2}>
-                  <Button variant="contained" onClick={openRoomsDialog}>
-                    Choose Rooms
-                  </Button>
-                </Box>
-              </Box>
-            )}
+            <TextField
+              label="First Name"
+              value={guestFirstName}
+              onChange={(e) => setGuestFirstName(e.target.value)}
+              fullWidth
+              required
+              sx={{ mb: 1 }}
+              size="small"
+            />
+            <TextField
+              label="Last Name"
+              value={guestLastName}
+              onChange={(e) => setGuestLastName(e.target.value)}
+              fullWidth
+              required
+              sx={{ mb: 1 }}
+              size="small"
+            />
+            <TextField
+              label="Email"
+              type="email"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+              fullWidth
+              required
+              sx={{ mb: 1 }}
+              size="small"
+            />
+            <TextField
+              label="Phone"
+              value={guestPhone}
+              onChange={(e) => setGuestPhone(e.target.value)}
+              fullWidth
+              required
+              size="small"
+            />
           </Paper>
         </Item>
       </Grid>
@@ -151,6 +208,10 @@ export default function MakeReservation() {
         startDate={start ? dayjs(start).format("YYYY-MM-DD") : null}
         endDate={end ? dayjs(end).format("YYYY-MM-DD") : null}
         guestsCount={parseInt(guests, 10) || 1}
+        guestFirstName={guestFirstName}
+        guestLastName={guestLastName}
+        guestEmail={guestEmail}
+        guestPhone={guestPhone}
       />
     </MainLayout>
   );

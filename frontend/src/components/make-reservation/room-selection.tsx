@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -7,19 +6,15 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Typography,
-  Table,
-  TableBody,
   TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  TextField,
   TablePagination,
+  TableRow,
+  TextField,
+  Typography,
 } from "@mui/material";
 import { green, red } from "@mui/material/colors";
 import dayjs from "dayjs";
+import React, { useEffect, useState } from "react";
 import { Endpoints } from "../../constants";
 import { Reservation, Room, RoomTypeType } from "../../types";
 
@@ -29,6 +24,10 @@ type RoomSelectionDialogProps = {
   startDate: string | null;
   endDate: string | null;
   guestsCount: number;
+  guestFirstName: string;
+  guestLastName: string;
+  guestEmail: string;
+  guestPhone: string;
 };
 
 function isRoomOccupied(
@@ -63,13 +62,12 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
   startDate,
   endDate,
   guestsCount,
-  //onReservationAdded,
+  guestFirstName,
+  guestLastName,
+  guestEmail,
+  guestPhone,
 }) => {
   const [selectedRoomIds, setSelectedRoomIds] = useState<number[]>([]);
-  const [guestFirstName, setGuestFirstName] = useState("");
-  const [guestLastName, setGuestLastName] = useState("");
-  const [guestEmail, setGuestEmail] = useState("");
-  const [guestPhone, setGuestPhone] = useState("");
 
   const [rooms, setRooms] = useState<Room[] | null>(null);
   const [allReservations, setAllReservations] = useState<Reservation[] | null>(
@@ -242,44 +240,6 @@ export const RoomSelectionDialog: React.FC<RoomSelectionDialogProps> = ({
     >
       <DialogTitle>Choose Rooms</DialogTitle>
       <DialogContent dividers>
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h6">Guest Information</Typography>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              flexWrap: "wrap",
-              mt: 1,
-              mb: 2,
-            }}
-          >
-            <TextField
-              label="First Name"
-              value={guestFirstName}
-              onChange={(e) => setGuestFirstName(e.target.value)}
-              required
-            />
-            <TextField
-              label="Last Name"
-              value={guestLastName}
-              onChange={(e) => setGuestLastName(e.target.value)}
-              required
-            />
-            <TextField
-              label="Email"
-              type="email"
-              value={guestEmail}
-              onChange={(e) => setGuestEmail(e.target.value)}
-              required
-            />
-            <TextField
-              label="Phone"
-              value={guestPhone}
-              onChange={(e) => setGuestPhone(e.target.value)}
-              required
-            />
-          </Box>
-        </Box>
         {filteredRooms
           ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
           .map((room) => {
