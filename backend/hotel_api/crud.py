@@ -86,13 +86,11 @@ def create_reservation(db: Session, reservation: schemas.ReservationCreate):
     reservation_data = reservation.model_dump(exclude={"room_ids"})
     db_reservation = models.Reservation(**reservation_data)
     
-    # Fetch room objects
+    # pobierz obiekty pokojow
     if room_ids:
         rooms = db.query(models.Room).filter(models.Room.id.in_(room_ids)).all()
         if len(rooms) != len(room_ids):
-            # Handle error: some rooms not found
-            # For simplicity, we'll assume all rooms exist for now
-            # or raise an exception
+            # jakis error
             pass
         db_reservation.rooms.extend(rooms)
     
@@ -102,6 +100,8 @@ def create_reservation(db: Session, reservation: schemas.ReservationCreate):
     db.commit()
     db.refresh(db_reservation)
     
+    #oddelegowano do main.py
+
     # db_payment = models.Payment(
     #     reservation_id=db_reservation.id,
     #     total_amount=reservation.total_price,  # lub inna logika wyliczania kwoty
@@ -186,22 +186,22 @@ def get_room_status_by_room_id(db: Session, room_id: int):
     return db.query(models.RoomStatus).join(models.Room).filter(models.Room.id == room_id).first()
 
 def get_available_rooms(db: Session, check_in_date: datetime, check_out_date: datetime):
-    # Fetch all rooms
+    # wez wszystkie pokoje
     all_rooms = db.query(models.Room).all()
     
-    # Fetch all reservations that overlap with the given dates
+    # wez rezerwacje ktore overlapuja z podanymi datami
     overlapping_reservations = db.query(models.Reservation).filter(
         models.Reservation.check_in_date < check_out_date,
         models.Reservation.check_out_date > check_in_date
     ).all()
     
-    # Extract room IDs from overlapping reservations
+    # pobierz id tych overlapping rezerwacji
     reserved_room_ids = set()
     for reservation in overlapping_reservations:
         for room in reservation.rooms:
             reserved_room_ids.add(room.id)
     
-    # Filter out reserved rooms
+    # usun z listy wszystkich pokoi te, ktore sa zarezerwowane
     available_rooms = [room for room in all_rooms if room.id not in reserved_room_ids]
     
     return available_rooms
